@@ -70,7 +70,7 @@ In this demo the page and the widget share an origin for simplicity. In the real
 
 ```bash
 npm test                 # the booking logic: 22 tests, no browser
-npm install && npm run test:e2e   # a real browser: 15 tests
+npm install && npm run test:e2e   # a real browser: 16 tests
 ```
 
 ## Licence

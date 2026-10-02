@@ -35,7 +35,6 @@ const state = {
   serviceId: null,
   staffId: 'any',
   zone: 'browser',
-  date: null,
   slot: null, // `${staffId}|${start}`
   hold: null,
   booking: null,
@@ -66,6 +65,7 @@ function go(step, { focus = true, say = null } = {}) {
   stopTimer();
   state.step = step;
   render();
+  if (state.showDate) { showDay(state.showDate); state.showDate = null; }
   if (focus) main.querySelector('[data-step-heading]')?.focus();
   if (say) announce(say);
 }
@@ -110,7 +110,6 @@ function renderService() {
       }
       state.alert = null;
       state.staffId = 'any';
-      state.date = null;
       state.slot = null;
       go('times', { say: `${serviceName(state.serviceId)}. Choose who you’d like to see and a time.` });
     },
@@ -137,29 +136,24 @@ function renderTimes() {
   const slots = currentSlots();
   const byDay = groupByDay(slots, viewZone());
   const dates = [...byDay.keys()];
-  if (!state.date || !byDay.has(state.date)) state.date = dates[0] ?? null;
-  const daySlots = state.date ? byDay.get(state.date) : [];
 
   const staffChoices = [
-    radio('staff', 'any', 'Anyone available', state.staffId === 'any', () => { state.staffId = 'any'; state.date = null; state.slot = null; state.alert = null; rerenderTimes(); }),
+    radio('staff', 'any', 'Anyone available', state.staffId === 'any', () => { state.staffId = 'any'; state.slot = null; state.alert = null; rerenderTimes(); }),
     ...backend.staff.filter((m) => m.services.includes(state.serviceId)).map((m) =>
-      radio('staff', m.id, `${m.name}, ${m.role}`, state.staffId === m.id, () => { state.staffId = m.id; state.date = null; state.slot = null; state.alert = null; rerenderTimes(); })),
+      radio('staff', m.id, `${m.name}, ${m.role}`, state.staffId === m.id, () => { state.staffId = m.id; state.slot = null; state.alert = null; rerenderTimes(); })),
   ];
 
   const zoneSelect = h('div', { class: 'field' },
     h('label', { for: 'zone', text: 'Show times in' }),
-    h('select', { id: 'zone', onchange: (e) => { state.zone = e.target.value; state.date = null; state.slot = null; state.alert = null; rerenderTimes(); announce(`Times now shown in ${e.target.selectedOptions[0].textContent}.`); } },
+    h('select', { id: 'zone', onchange: (e) => { state.zone = e.target.value; state.slot = null; state.alert = null; rerenderTimes(); announce(`Times now shown in ${e.target.selectedOptions[0].textContent}.`); } },
       DISPLAY_ZONES.map((z) => h('option', { value: z.id, selected: state.zone === z.id || false, text: z.id === 'browser' ? `${z.label} (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : z.label }))));
-
-  const dayChoices = dates.map((d) => radio('day', d, h('span', {}, h('strong', { text: formatDay(d) }), h('span', { class: 'meta', text: ` ${byDay.get(d).length} ${byDay.get(d).length === 1 ? 'time' : 'times'}` })),
-    state.date === d, () => { state.date = d; state.slot = null; rerenderSlots(); announce(`${formatDay(d)}: ${byDay.get(d).length} times available.`); }));
 
   const form = h('form', { onsubmit: onHold },
     h('p', { class: 'summary' }, `${service.name}, ${service.minutes} minutes.`),
     fieldset('Who would you like to see?', staffChoices),
     zoneSelect,
     dates.length
-      ? [fieldset('Choose a day', dayChoices, 'Days with no free times are left out.'), h('div', { id: 'slots' }, slotsFieldset(daySlots))]
+      ? schedule(byDay)
       : h('p', { class: 'empty', text: 'There are no free times for this choice in the next two weeks. Try someone else.' }),
     h('div', { class: 'actions' },
       dates.length ? h('button', { type: 'submit', class: 'btn btn-primary', text: state.moving ? 'Hold this new time' : 'Hold this time and continue' }) : null,
@@ -169,17 +163,56 @@ function renderTimes() {
   return [heading(state.moving ? 'Choose a new time' : 'Choose a time'), alertBox(), form];
 }
 
-function slotsFieldset(daySlots) {
-  return fieldset(`Choose a time on ${formatDay(state.date)}`, daySlots.map((s) => {
-    const key = `${s.staffId}|${s.start}`;
-    return radio('slot', key, h('span', {}, h('strong', { text: timeText(s) }), h('span', { class: 'meta', text: ` with ${staffName(s.staffId)}` })), state.slot === key, () => { state.slot = key; state.alert = null; });
-  }));
+/**
+ * Every free day as a column of times, in one scrolling pane. All the times are one radio group, so
+ * the keyboard has a single Tab stop: Up and Down move through a day, Left and Right to the same
+ * row of the next or previous day. Each column is named for its day, and days with no free times
+ * are left out.
+ */
+function schedule(byDay) {
+  const columns = [...byDay.entries()].map(([date, daySlots]) => {
+    const headId = `day-${date}`;
+    return h('div', { class: 'day', role: 'group', 'aria-labelledby': headId, 'data-date': date },
+      h('div', { class: 'day-head', id: headId },
+        h('strong', { text: formatDay(date) }),
+        ' ', // a real space, so the group's name reads "Friday 2 October 12 times"
+        h('span', { class: 'meta', text: `${daySlots.length} ${daySlots.length === 1 ? 'time' : 'times'}` })),
+      daySlots.map((slot) => {
+        const key = `${slot.staffId}|${slot.start}`;
+        return radio('slot', key,
+          h('span', { class: 'slot-text' }, h('strong', { text: timeText(slot) }), h('span', { class: 'meta', text: `with ${staffName(slot.staffId)}` })),
+          state.slot === key, () => { state.slot = key; state.alert = null; });
+      }));
+  });
+  const pane = h('div', { class: 'schedule', onkeydown: scheduleKeys }, columns);
+  return h('fieldset', {},
+    h('legend', { text: 'Choose a day and time' }),
+    h('p', { class: 'hint', text: 'Each column is a day. Scroll sideways for more days, or use the left and right arrow keys.' }),
+    pane);
 }
 
-function rerenderSlots() {
-  const slotsEl = document.getElementById('slots');
-  const byDay = groupByDay(currentSlots(), viewZone());
-  slotsEl.replaceChildren(slotsFieldset(byDay.get(state.date) ?? []));
+/** Left and Right move to the same row in the neighbouring day (Up and Down are native). */
+function scheduleKeys(e) {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const input = e.target;
+  if (!(input instanceof HTMLInputElement) || input.name !== 'slot') return;
+  e.preventDefault();
+  const column = input.closest('.day');
+  const next = e.key === 'ArrowRight' ? column.nextElementSibling : column.previousElementSibling;
+  if (!next) return;
+  const row = [...column.querySelectorAll('input')].indexOf(input);
+  const options = next.querySelectorAll('input');
+  const target = options[Math.min(row, options.length - 1)];
+  target.checked = true;
+  target.dispatchEvent(new Event('change', { bubbles: true }));
+  target.focus();
+}
+
+/** After a lost time, bring the next free day into view (a column's left edge to the pane's). */
+function showDay(date) {
+  const pane = main.querySelector('.schedule');
+  const column = pane?.querySelector(`.day[data-date="${date}"]`);
+  if (pane && column) pane.scrollLeft = column.offsetLeft - pane.offsetLeft;
 }
 
 function rerenderTimes() {
@@ -225,7 +258,7 @@ function takenFallback(err, message) {
   state.hold = null;
   state.slot = null;
   const next = err.alternatives?.[0];
-  if (next) { state.date = groupByDay([next], viewZone()).keys().next().value; }
+  if (next) state.showDate = groupByDay([next], viewZone()).keys().next().value;
   const nextText = err.alternatives?.length ? ` The next free times start ${err.alternatives.map((a) => `${when(a.start)} with ${staffName(a.staffId)}`).join('; ')}.` : '';
   state.alert = { text: `${message}${nextText}` };
   go('times', { say: `${message} Other times are shown.` });
@@ -393,13 +426,13 @@ function renderDone() {
       h('p', { class: 'meta', text: `Booking reference ${b.id} (invented for the demo).` })),
     outboxList(),
     h('div', { class: 'actions' },
-      h('button', { type: 'button', class: 'btn btn-primary', text: 'Change time', onclick: () => { state.moving = true; state.serviceId = b.serviceId; state.staffId = 'any'; state.date = null; state.slot = null; state.alert = null; go('times', { say: 'Choose a new time.' }); } }),
+      h('button', { type: 'button', class: 'btn btn-primary', text: 'Change time', onclick: () => { state.moving = true; state.serviceId = b.serviceId; state.staffId = 'any'; state.slot = null; state.alert = null; go('times', { say: 'Choose a new time.' }); } }),
       h('button', { type: 'button', class: 'btn', text: 'Cancel booking', onclick: () => { state.alert = null; go('cancel'); } }),
       h('button', { type: 'button', class: 'btn btn-quiet', text: 'Book another appointment', onclick: newBooking }))];
 }
 
 function newBooking() {
-  Object.assign(state, { serviceId: null, staffId: 'any', date: null, slot: null, hold: null, booking: null, moving: false, alert: null });
+  Object.assign(state, { serviceId: null, staffId: 'any', slot: null, hold: null, booking: null, moving: false, alert: null });
   go('service', { say: 'Starting a new booking.' });
 }
 

@@ -35,6 +35,8 @@ async function open({ bypassCSP = false, clock = false, viewport } = {}) {
   await page.goto(`${origin}/`);
   const frame = page.frameLocator('iframe');
   await frame.getByRole('heading', { level: 2 }).waitFor();
+  // Freeze the page's clock, so a countdown reads exactly what the test expects and moves only when told.
+  if (clock) await page.clock.pauseAt(new Date('2026-09-28T00:00:10Z'));
   return { context, page, frame, problems };
 }
 
@@ -291,8 +293,7 @@ test('the live calendar check catches a change the synchronised copy has not see
   const hint = await frame.locator('details.demo-controls .hint').last().textContent();
   const day = /Alex on (.+?) at 10:00 am/.exec(hint)[1];
   await frame.getByRole('radio', { name: /^Alex, Physiotherapist/ }).check();
-  await frame.getByRole('radio', { name: new RegExp(day) }).check();
-  await frame.getByRole('radio', { name: /^10:00 am/ }).check();
+  await frame.getByRole('group', { name: new RegExp(day) }).getByRole('radio', { name: /^10:00 am/ }).check();
   await frame.getByRole('button', { name: /Hold this time/ }).click();
   await frame.getByRole('heading', { name: 'Your details' }).waitFor();
   await frame.getByRole('button', { name: 'Confirm booking' }).click();
@@ -382,5 +383,56 @@ test('the frame fits the widget: it grows for a long step and shrinks back', asy
   await page.waitForTimeout(300);
   assert.ok(Math.abs((await height()) - service) <= 4, 'and it shrinks back to fit the shorter step');
   assert.ok(service < 480, `no empty space under the first step (${service}px)`);
+  await context.close();
+});
+
+test('days are columns in a scrolling pane: one Tab stop, arrows within and across days', async () => {
+  const { context, page, frame } = await open({ viewport: { width: 700, height: 900 } });
+  await frame.getByRole('radio', { name: /Follow-up/ }).check();
+  await frame.getByRole('button', { name: 'Continue' }).click();
+  await frame.getByRole('heading', { name: 'Choose a time' }).waitFor();
+
+  const pane = frame.locator('.schedule');
+  const columns = frame.locator('.schedule .day');
+  assert.ok(await columns.count() >= 7, 'a week or more of days');
+  const geometry = await pane.evaluate((el) => ({ wide: el.scrollWidth > el.clientWidth, tall: el.scrollHeight > el.clientHeight, height: el.clientHeight }));
+  assert.ok(geometry.wide, 'it scrolls sideways for more days');
+  assert.ok(geometry.tall, 'and up and down within a day');
+  assert.ok(geometry.height <= 22 * 16 + 8, 'so the pane does not grow with the list');
+
+  // Each column is named for its day and says how many times it has.
+  const names = await frame.locator('.schedule [role="group"]').evaluateAll((els) => els.map((e) => document.getElementById(e.getAttribute('aria-labelledby')).textContent));
+  assert.ok(names.every((n) => /\w+day \d+ \w+ \d+ times?$/.test(n)), names.join(' | '));
+
+  // One Tab stop for the whole grid: Tab goes in once and the next Tab leaves.
+  const first = frame.locator('input[name="slot"]').first();
+  await reach(page, first);
+  await page.keyboard.press('Tab');
+  assert.ok(!(await frame.locator('input[name="slot"]').evaluateAll((els) => els.some((e) => e === e.ownerDocument.activeElement))), 'the next Tab leaves the grid');
+  await page.keyboard.press('Shift+Tab');
+  assert.ok(await isFocused(first), 'and Shift+Tab comes back to it');
+
+  // Down stays in the day; Right moves to the same row of the next day, selecting as it goes.
+  const dayOf = (loc) => loc.evaluate((el) => el.closest('.day').dataset.date);
+  const startDay = await dayOf(first);
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  const focusedRow = () => frame.locator('input[name="slot"]').evaluateAll((els) => {
+    const el = els.find((e) => e === e.ownerDocument.activeElement);
+    return { date: el.closest('.day').dataset.date, row: [...el.closest('.day').querySelectorAll('input')].indexOf(el) };
+  });
+  assert.deepEqual(await focusedRow(), { date: startDay, row: 2 });
+  await page.keyboard.press('ArrowRight');
+  const afterRight = await focusedRow();
+  assert.notEqual(afterRight.date, startDay);
+  assert.equal(afterRight.row, 2, 'same row in the next day');
+  assert.equal(await frame.locator('input[name="slot"]:checked').count(), 1, 'exactly one time is selected across all days');
+  await page.keyboard.press('ArrowLeft');
+  assert.deepEqual(await focusedRow(), { date: startDay, row: 2 });
+
+  // The chosen time can be held.
+  await reach(page, frame.getByRole('button', { name: /Hold this time/ }));
+  await page.keyboard.press('Enter');
+  await frame.getByRole('heading', { name: 'Your details' }).waitFor();
   await context.close();
 });

@@ -95,3 +95,23 @@ summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; al
   .btn-primary { border-color: ButtonText; }
 }
 @media (max-width: 480px) { body { padding: 12px; } .choices { flex-direction: column; } .choice { width: 100%; } }
+
+/* The schedule: one column per day, in a pane that scrolls both ways. Day headings stick to the top
+   as the times scroll; scroll-padding keeps a focused time from sliding under them (WCAG 2.4.11). */
+.schedule {
+  display: flex; gap: 8px; align-items: flex-start;
+  max-height: 22rem; overflow: auto; overscroll-behavior: contain;
+  padding: 0 8px 8px; border: 2px solid var(--line); border-radius: 8px;
+  scroll-padding-top: 4.5rem; scroll-padding-inline: 8px;
+}
+.day { flex: 0 0 10.75rem; display: flex; flex-direction: column; gap: 6px; }
+.day-head {
+  position: sticky; top: 0; z-index: 1; margin: 0 -4px; padding: 8px 8px 6px;
+  background: var(--tint); border-bottom: 2px solid var(--line); line-height: 1.3; font-size: 0.95rem;
+}
+.day-head .meta { display: block; font-size: 0.85rem; }
+.day .choice { min-height: 44px; padding: 6px 10px; }
+.slot-text { display: flex; flex-direction: column; line-height: 1.25; }
+.slot-text .meta { font-size: 0.85rem; }
+.schedule .choice:has(input:focus-visible) { outline-offset: -3px; }
+@media (max-width: 480px) { .schedule .choice { width: auto; } .schedule { max-height: 20rem; } }
