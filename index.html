@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- No network use beyond this page's own files; the widget is framed from the same place. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Example Clinic (fictional): online booking demo</title>
+  <meta name="description" content="A clickable demo of an embeddable appointment booking widget, on a fictional clinic's web page. Fictional data; nothing is sent or kept.">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <p class="brand">Example Clinic <span>(fictional)</span></p>
+    <p class="demo-banner"><strong>Demo only.</strong> This is not a real clinic. It exists to show a booking widget embedded in a business’s own web page.</p>
+  </header>
+
+  <main id="content">
+    <h1>Physiotherapy for everyday movement</h1>
+    <p class="lead">This page stands in for a business’s own website. The box below is the booking widget, loaded into the page with one line of HTML and a small script.</p>
+
+    <section aria-labelledby="book-heading">
+      <h2 id="book-heading">Book online</h2>
+      <div data-booking-widget data-brand="#0b5c8e"></div>
+    </section>
+
+    <section aria-labelledby="try-heading">
+      <h2 id="try-heading">What to try</h2>
+      <ol>
+        <li><strong>Book, then change and cancel.</strong> Everything works with the keyboard alone.</li>
+        <li><strong>Lose a race.</strong> Open the widget’s “Demo controls”, tick “Another customer takes the time I’m about to hold”, then hold a time. The overlap rule rejects you and offers other times.</li>
+        <li><strong>Run out of time.</strong> A held time lasts five minutes. Leave it, or choose “Keep holding” to extend it.</li>
+        <li><strong>Change the time zone.</strong> Pick Los Angeles or London under “Show times in”. The same bookings read differently; the clinic’s own zone stays the reference.</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="records-heading">
+      <h2 id="records-heading">What each part demonstrates</h2>
+      <p>The demo is the working half of the <em>Appointment Booking (sample)</em> project. Each behaviour implements a recorded decision:</p>
+      <table>
+        <thead><tr><th scope="col">In the demo</th><th scope="col">Record</th></tr></thead>
+        <tbody>
+          <tr><td>The widget sits in an iframe on this page, with a loader script that sizes it and passes the brand colour</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/decisions/0001-embed-mechanism.md" target="_blank" rel="noopener noreferrer">ADR-AB-0001 Embed the widget in an iframe<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+          <tr><td>Search uses a synchronised copy of calendars; confirming checks the live calendar</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/decisions/0002-availability-source-of-truth.md" target="_blank" rel="noopener noreferrer">ADR-AB-0002 Availability from a synchronised copy<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+          <tr><td>A five-minute hold, and an overlap rule that rejects a second request for the same time</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/decisions/0003-double-booking-prevention.md" target="_blank" rel="noopener noreferrer">ADR-AB-0003 Prevent double booking<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+          <tr><td>Confirmation and reminder messages are queued, not sent, and listed after booking</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/decisions/0005-notification-delivery.md" target="_blank" rel="noopener noreferrer">ADR-AB-0005 Deliver notifications through a queue<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+          <tr><td>Times are UTC instants, working hours are local, and every time names its zone</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/decisions/0006-time-zones.md" target="_blank" rel="noopener noreferrer">ADR-AB-0006 Store instants in UTC<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+          <tr><td>The operations the widget calls, and how it handles conflicts and retries</td><td><a href="https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/contracts/ICR-AB-0001-booking-api.md" target="_blank" rel="noopener noreferrer">ICR-AB-0001 Booking API<span class="visually-hidden"> (opens in a new tab)</span></a></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="safe-heading">
+      <h2 id="safe-heading">What this demo does not do</h2>
+      <ul>
+        <li>It makes no bookings and contacts no calendar, email or text service. It makes no network requests while you use it.</li>
+        <li>Nothing you type is sent, saved or kept. Reloading the page discards everything.</li>
+        <li>The clinic, the staff and their hours are invented.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="js/embed.js"></script>
+  <script src="js/hostbar.js"></script>
+</body>
+</html>

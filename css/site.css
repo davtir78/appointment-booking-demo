@@ -1,0 +1,35 @@
+/* The fictional clinic's page. Same palette and contrast rules as the widget. */
+:root {
+  --text: #1f2933; --muted: #4b5563; --brand: #0b5c8e; --tint: #eef4f8; --line: #9aa5b1;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55; color: var(--text);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; }
+a { color: #0a4f7a; }
+a:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+
+.host-bar { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; min-height: 40px; padding: 6px 16px; background: #1f2933; color: #fff; font-size: 0.95rem; }
+.host-bar a { color: #fff; font-weight: 600; padding: 4px 2px; min-height: 24px; }
+.host-bar a:focus-visible { outline-color: #fff; }
+.host-link { margin-left: 8px; }
+
+.site-header { padding: 16px; border-bottom: 1px solid var(--line); }
+.brand { margin: 0 0 8px; font-size: 1.4rem; font-weight: 700; }
+.brand span { font-weight: 500; color: var(--muted); }
+.demo-banner { margin: 0; background: var(--tint); border-left: 4px solid var(--brand); padding: 8px 12px; font-size: 0.95rem; }
+
+main { max-width: 52rem; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.8rem; margin: 16px 0 8px; }
+h2 { font-size: 1.3rem; margin: 32px 0 12px; }
+.lead { font-size: 1.1rem; color: var(--muted); }
+section ol, section ul { padding-left: 22px; }
+li { margin-bottom: 8px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--tint); }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 600px) { th, td { display: block; } th { display: none; } td:first-child { font-weight: 600; border-bottom: 0; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

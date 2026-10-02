@@ -1,0 +1,16 @@
+{
+  "name": "appointment-booking-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Clickable demo of the Appointment Booking (sample) widget: fictional data, no network, nothing kept.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/domain.test.mjs",
+    "serve": "node tools/serve.mjs",
+    "test:e2e": "node --test tests/e2e.test.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "4.13.0",
+    "playwright": "1.61.1"
+  }
+}

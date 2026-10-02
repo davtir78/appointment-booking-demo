@@ -1,0 +1,97 @@
+/* Booking widget. Light theme only. Colours are chosen for WCAG 2.2 AA contrast on white:
+   text #1f2933 (15:1), muted #4b5563 (7:1), brand #0b5c8e with white text (7:1). */
+
+:root {
+  --brand: #0b5c8e;
+  --brand-text: #ffffff;
+  --text: #1f2933;
+  --muted: #4b5563;
+  --line: #9aa5b1;
+  --surface: #ffffff;
+  --tint: #eef4f8;
+  --ok: #0a6b3b;
+  --ok-tint: #e6f4ec;
+  --warn: #8a3b00;
+  --warn-tint: #fff4e5;
+  --danger: #b42318;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: var(--surface); }
+h1 { font-size: 1.25rem; margin: 0 0 8px; }
+h1 .business { display: block; font-size: 1rem; font-weight: 500; color: var(--muted); }
+h2 { font-size: 1.15rem; margin: 20px 0 12px; }
+h2:focus { outline: none; } /* focus moves here on each step; the heading is announced, not boxed */
+p { margin: 0 0 8px; }
+
+.demo-banner { background: var(--tint); border-left: 4px solid var(--brand); padding: 8px 12px; margin: 0 0 8px; font-size: 0.9rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.meta { color: var(--muted); font-size: 0.95em; }
+.hint { color: var(--muted); font-size: 0.9rem; }
+.summary { font-weight: 600; }
+.empty { padding: 12px; background: var(--warn-tint); }
+
+fieldset { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.choice {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 8px 12px;
+  border: 2px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer;
+}
+.choice:has(input:checked) { border-color: var(--brand); background: var(--tint); }
+.choice input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--brand); }
+
+.field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; max-width: 28rem; }
+.field label { font-weight: 600; }
+input[type="text"], input[type="email"], input[type="tel"], select {
+  min-height: 44px; padding: 8px 10px; font: inherit; color: var(--text);
+  border: 2px solid var(--line); border-radius: 8px; background: var(--surface);
+}
+input[aria-invalid="true"] { border-color: var(--danger); }
+.error { color: var(--danger); font-weight: 600; margin: 0; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.check input { width: 20px; height: 20px; accent-color: var(--brand); }
+
+.btn {
+  min-height: 44px; padding: 8px 18px; font: inherit; font-weight: 600; cursor: pointer;
+  border: 2px solid var(--brand); border-radius: 8px; background: var(--surface); color: var(--brand);
+}
+.btn-primary { background: var(--brand); color: var(--brand-text); }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-quiet { border-color: transparent; text-decoration: underline; }
+.btn:hover { filter: brightness(0.94); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+
+/* A visible focus indicator that is never hidden behind other content (WCAG 2.4.7, 2.4.11, 2.4.13). */
+:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; box-shadow: 0 0 0 5px #fff; }
+.choice:has(input:focus-visible) { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+.choice input:focus-visible { outline: none; box-shadow: none; }
+
+.card { border: 2px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.card p { margin: 0 0 4px; }
+.card-ok { border-color: var(--ok); background: var(--ok-tint); }
+.hold { background: var(--tint); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.hold p { margin: 0; }
+#countdown { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; border-left: 6px solid; }
+.alert p { margin: 0; }
+.alert-warn { background: var(--warn-tint); border-color: var(--warn); }
+.alert-ok { background: var(--ok-tint); border-color: var(--ok); }
+
+details { margin: 12px 0; }
+summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.demo-controls { border: 2px dashed var(--line); border-radius: 8px; padding: 0 12px; margin-top: 20px; }
+.outbox ul { margin: 0 0 8px; padding-left: 20px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+@media (forced-colors: active) {
+  .choice:has(input:checked) { outline: 3px solid Highlight; }
+  .btn-primary { border-color: ButtonText; }
+}
+@media (max-width: 480px) { body { padding: 12px; } .choices { flex-direction: column; } .choice { width: 100%; } }

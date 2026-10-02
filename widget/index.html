@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The demo makes no network requests and keeps nothing: this policy lets the browser enforce that. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Book an appointment (demo)</title>
+  <link rel="stylesheet" href="widget.css">
+</head>
+<body>
+  <header class="widget-header">
+    <h1>Book an appointment <span class="business">at Example Clinic (fictional)</span></h1>
+    <p class="demo-banner"><strong>Demo only.</strong> A fictional clinic with invented staff and times. Nothing you enter is sent or kept, and no email or text is sent.</p>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <div id="status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="demo-banner">This demo needs JavaScript. It runs entirely in your browser.</p></noscript>
+  <script type="module" src="widget.js"></script>
+</body>
+</html>
