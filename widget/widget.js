@@ -1,16 +1,20 @@
-// The booking widget: the page a business embeds in an iframe (ADR-AB-0001). It talks only to the
-// in-memory Backend in domain.js, which stands in for the Booking API of ICR-AB-0001, so it
-// never contacts a server and keeps nothing once the page closes.
+// The booking widget: the page a business embeds in an iframe (ADR-AB-0001). It talks to a backend
+// through widget/api.js: the in-browser Backend of domain.js on the public demo (no request leaves
+// the page, nothing is kept), or the real Booking API of ICR-AB-0001 when opened with a widget key.
 //
 // Built for keyboard and screen-reader use: real fieldsets and radio buttons, focus moved to each
 // step's heading, outcomes announced in a status region, and a hold the visitor can extend.
 
-import { Backend, ApiError, HOLD_MS, groupByDay } from './domain.js';
+import { ApiError, groupByDay } from './domain.js';
 import { DISPLAY_ZONES, FICTIONAL_CUSTOMER } from './data.js';
 import { formatClock, formatDay, formatSlot } from './time.js';
+import { createApi } from './api.js';
+import { createPanel } from './panel.js';
 
-const backend = new Backend();
-const BUSINESS = backend.business;
+let api = null;
+let startupError = null;
+try { api = await createApi(); } catch (e) { startupError = e; }
+const BUSINESS = api?.business;
 
 // ── tiny DOM helper ─────────────────────────────────────────────────────────────────────────────────
 
@@ -36,6 +40,9 @@ const state = {
   staffId: 'any',
   zone: 'browser',
   slot: null, // `${staffId}|${start}`
+  slots: [], // the free times for the current choice, loaded before the times step is drawn
+  busy: false, // a request is in flight; ignore a second click
+  messages: [], // what a cancellation queued
   hold: null,
   booking: null,
   moving: false, // rescheduling an existing booking
@@ -44,8 +51,8 @@ const state = {
 };
 
 const viewZone = () => (state.zone === 'browser' ? Intl.DateTimeFormat().resolvedOptions().timeZone : state.zone);
-const staffName = (id) => backend.staffById(id).name;
-const serviceName = (id) => backend.serviceById(id).name;
+const staffName = (id) => api.staffById(id).name;
+const serviceName = (id) => api.serviceById(id).name;
 
 const main = document.getElementById('main');
 const statusEl = document.getElementById('status');
@@ -100,7 +107,7 @@ const when = (start) => formatSlot(start, viewZone());
 
 function renderService() {
   const form = h('form', {
-    onsubmit: (e) => {
+    onsubmit: async (e) => {
       e.preventDefault();
       if (!state.serviceId) {
         state.alert = { text: 'Choose a service to continue.' };
@@ -111,10 +118,10 @@ function renderService() {
       state.alert = null;
       state.staffId = 'any';
       state.slot = null;
-      go('times', { say: `${serviceName(state.serviceId)}. Choose who you’d like to see and a time.` });
+      await showTimes({ say: `${serviceName(state.serviceId)}. Choose who you’d like to see and a time.` });
     },
   },
-  fieldset('Which service would you like?', backend.services.map((s) =>
+  fieldset('Which service would you like?', api.services.map((s) =>
     radio('service', s.id, h('span', {}, h('strong', { text: s.name }), h('span', { class: 'meta', text: ` ${s.minutes} minutes` })), state.serviceId === s.id,
       () => { state.serviceId = s.id; state.alert = null; }, { required: true }))),
   h('div', { class: 'actions' }, h('button', { type: 'submit', class: 'btn btn-primary', text: 'Continue' })));
@@ -123,23 +130,31 @@ function renderService() {
 
 // ── step 2: staff and time ──────────────────────────────────────────────────────────────────────────
 
-function currentSlots() {
-  return backend.availability({
-    serviceId: state.serviceId,
-    staffId: state.staffId === 'any' ? null : state.staffId,
-    days: 14,
-  });
+/** Fetch the free times for the current choice. A failure is shown as an alert, with no times. */
+async function loadSlots() {
+  try {
+    state.slots = await api.availability({ serviceId: state.serviceId, staffId: state.staffId === 'any' ? null : state.staffId, days: 14 });
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    state.slots = [];
+    state.alert = { text: err.message };
+  }
+}
+
+/** Load the times, then draw the step. */
+async function showTimes(options) {
+  await loadSlots();
+  go('times', options);
 }
 
 function renderTimes() {
-  const service = backend.serviceById(state.serviceId);
-  const slots = currentSlots();
-  const byDay = groupByDay(slots, viewZone());
+  const service = api.serviceById(state.serviceId);
+  const byDay = groupByDay(state.slots, viewZone());
   const dates = [...byDay.keys()];
 
   const staffChoices = [
     radio('staff', 'any', 'Anyone available', state.staffId === 'any', () => { state.staffId = 'any'; state.slot = null; state.alert = null; rerenderTimes(); }),
-    ...backend.staff.filter((m) => m.services.includes(state.serviceId)).map((m) =>
+    ...api.staff.filter((m) => m.services.includes(state.serviceId)).map((m) =>
       radio('staff', m.id, `${m.name}, ${m.role}`, state.staffId === m.id, () => { state.staffId = m.id; state.slot = null; state.alert = null; rerenderTimes(); })),
   ];
 
@@ -215,26 +230,30 @@ function showDay(date) {
   if (pane && column) pane.scrollLeft = column.offsetLeft - pane.offsetLeft;
 }
 
-function rerenderTimes() {
+async function rerenderTimes() {
   const active = document.activeElement?.name ? { name: document.activeElement.name, value: document.activeElement.value, id: document.activeElement.id } : null;
+  await loadSlots();
   render();
   const again = active && (active.id ? document.getElementById(active.id) : main.querySelector(`input[name="${active.name}"][value="${CSS.escape(active.value)}"]`));
   again?.focus();
 }
 
+/** In the public demo these live here; with the API running they are in the “behind the scenes” panel. */
 function demoControls() {
-  const hint = backend.hints();
+  if (!api.demo) return h('p', { class: 'hint demo-pointer', text: 'The “Behind the scenes” panel below has the demo controls: switch a provider off, add a calendar event the sync won’t hear about, or move the clock.' });
+  const hint = api.demo.hint();
   return h('details', { class: 'demo-controls' },
     h('summary', { text: 'Demo controls' }),
     h('label', { class: 'check' },
-      h('input', { type: 'checkbox', checked: backend.raceNext || false, onchange: (e) => { backend.raceNext = e.target.checked; } }),
+      h('input', { type: 'checkbox', checked: api.demo.race() || false, onchange: (e) => { api.demo.setRace(e.target.checked); } }),
       h('span', { text: 'Another customer takes the time I’m about to hold' })),
     h('p', { class: 'hint', text: 'Tick this, then hold a time: you’ll see the overlap rule reject the second request and offer other times (ADR-AB-0003).' }),
     hint ? h('p', { class: 'hint', text: `Or try Alex on ${formatDay(hint.date)} at 10:00 am (a 30-minute follow-up). The synchronised calendar shows it free, but Alex’s live calendar has a new event, so the check at confirmation catches it (ADR-AB-0002).` }) : null);
 }
 
-function onHold(e) {
+async function onHold(e) {
   e.preventDefault();
+  if (state.busy) return;
   if (!state.slot) {
     state.alert = { text: 'Choose a time to continue.' };
     render();
@@ -242,31 +261,39 @@ function onHold(e) {
     return;
   }
   const [staffId, start] = state.slot.split('|');
-  if (state.hold) { backend.releaseHold(state.hold.id); state.hold = null; }
+  state.busy = true;
   try {
-    state.hold = backend.createHold({ serviceId: state.serviceId, staffId, start: Number(start), idempotencyKey: `${staffId}-${start}-${Date.now()}` });
+    if (state.hold) { api.releaseHold(state.hold.id).catch(() => {}); state.hold = null; }
+    state.hold = await api.createHold({ serviceId: state.serviceId, staffId, start: Number(start) });
     state.alert = null;
     go('details', { say: `Holding ${when(state.hold.start)} with ${staffName(staffId)} for five minutes.` });
   } catch (err) {
-    takenFallback(err, 'That time has just been taken.');
+    await takenFallback(err, 'That time has just been taken.');
+  } finally {
+    state.busy = false;
   }
 }
 
 /** A slot lost to someone else: say so, and move to the next free time rather than an error page. */
-function takenFallback(err, message) {
+async function takenFallback(err, message) {
   if (!(err instanceof ApiError)) throw err;
   state.hold = null;
   state.slot = null;
-  const next = err.alternatives?.[0];
-  if (next) state.showDate = groupByDay([next], viewZone()).keys().next().value;
-  const nextText = err.alternatives?.length ? ` The next free times start ${err.alternatives.map((a) => `${when(a.start)} with ${staffName(a.staffId)}`).join('; ')}.` : '';
-  state.alert = { text: `${message}${nextText}` };
-  go('times', { say: `${message} Other times are shown.` });
+  let text = err.message;
+  if (err.status === 409) {
+    const next = err.alternatives?.[0];
+    if (next) state.showDate = groupByDay([next], viewZone()).keys().next().value;
+    const nextText = err.alternatives?.length ? ` The next free times start ${err.alternatives.map((a) => `${when(a.start)} with ${staffName(a.staffId)}`).join('; ')}.` : '';
+    text = `${message}${nextText}`;
+  }
+  state.alert = { text };
+  await loadSlots(); // the list is out of date: it still shows the time that was just lost
+  go('times', { say: err.status === 409 ? `${message} Other times are shown.` : err.message });
 }
 
 // ── step 3: details (or confirm a move) ─────────────────────────────────────────────────────────────
 
-function remainingMs() { return Math.max(0, state.hold.expiresAt - Date.now()); }
+function remainingMs() { return Math.max(0, state.hold.expiresAt - api.now()); }
 const clockText = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 function renderDetails() {
@@ -306,11 +333,11 @@ function renderDetails() {
   return [heading('Your details'), alertBox(), summary, holdBox, form];
 }
 
-function toTimes() {
-  if (state.hold) { backend.releaseHold(state.hold.id); state.hold = null; }
+async function toTimes() {
+  if (state.hold) { api.releaseHold(state.hold.id).catch(() => {}); state.hold = null; }
   state.alert = null;
   state.slot = null;
-  go('times');
+  await showTimes();
 }
 
 function startTimer(timerEl) {
@@ -325,14 +352,16 @@ function startTimer(timerEl) {
       state.hold = null;
       state.slot = null;
       state.alert = { text: 'Your hold on that time ended. Choose a time again.' };
-      go('times', { say: 'Your hold on that time ended.' });
+      showTimes({ say: 'Your hold on that time ended.' });
     }
   }, 1000);
 }
 
-function extend() {
+async function extend() {
+  if (state.busy) return;
+  state.busy = true;
   try {
-    state.hold = backend.extendHold(state.hold.id);
+    state.hold = await api.extendHold(state.hold.id);
     document.getElementById('countdown').textContent = clockText(remainingMs());
     announce('Holding this time for another five minutes.');
     startTimer(document.getElementById('countdown'));
@@ -340,12 +369,15 @@ function extend() {
     if (!(err instanceof ApiError)) throw err;
     state.hold = null;
     state.alert = { text: err.message };
-    go('times', { say: err.message });
+    await showTimes({ say: err.message });
+  } finally {
+    state.busy = false;
   }
 }
 
-function confirm(e) {
+async function confirm(e) {
   e.preventDefault();
+  if (state.busy) return;
   const form = e.currentTarget;
   const name = form.elements.name.value.trim();
   const email = form.elements.email.value.trim();
@@ -366,8 +398,9 @@ function confirm(e) {
     announce(`${problems.length} ${problems.length === 1 ? 'problem' : 'problems'} to fix: ${problems.map((p) => p[1]).join(' ')}`);
     return;
   }
+  state.busy = true;
   try {
-    state.booking = backend.confirmHold(state.hold.id, { name, email, phone: form.elements.phone.value.trim() }, { idempotencyKey: `confirm-${state.hold.id}` });
+    state.booking = await api.confirmHold(state.hold.id, { name, email, phone: form.elements.phone.value.trim() });
     state.hold = null;
     state.alert = null;
     state.moving = false;
@@ -376,15 +409,20 @@ function confirm(e) {
     if (err instanceof ApiError && err.code === 'hold_expired') {
       state.hold = null;
       state.alert = { text: err.message };
-      return go('times', { say: err.message });
+      await showTimes({ say: err.message });
+    } else {
+      await takenFallback(err, 'That time is no longer free: the clinic’s calendar changed while you were choosing.');
     }
-    takenFallback(err, 'That time is no longer free: the clinic’s calendar changed while you were choosing.');
+  } finally {
+    state.busy = false;
   }
 }
 
-function confirmMove() {
+async function confirmMove() {
+  if (state.busy) return;
+  state.busy = true;
   try {
-    state.booking = backend.reschedule(state.booking.id, state.booking.token, state.hold.id);
+    state.booking = await api.reschedule(state.booking.id, state.booking.token, state.hold.id);
     state.hold = null;
     state.moving = false;
     state.alert = { tone: 'ok', text: 'Your booking has moved.' };
@@ -393,27 +431,32 @@ function confirmMove() {
     if (err instanceof ApiError && err.code === 'hold_expired') {
       state.hold = null;
       state.alert = { text: err.message };
-      return go('times', { say: err.message });
+      await showTimes({ say: err.message });
+    } else {
+      await takenFallback(err, 'That time is no longer free.');
     }
-    takenFallback(err, 'That time is no longer free.');
+  } finally {
+    state.busy = false;
   }
 }
 
 // ── step 4: booked ──────────────────────────────────────────────────────────────────────────────────
 
 const OUTBOX_TEXT = {
-  confirmation: () => 'A confirmation email, queued now.',
-  reminder: (m) => `A reminder, queued for ${formatSlot(m.sendAt, viewZone())}.`,
-  rescheduled: () => 'A “your booking has moved” email, queued now.',
-  cancelled: () => 'A cancellation email, queued now.',
+  BookingConfirmed: () => 'A confirmation',
+  ReminderDue: (m) => `A reminder${m.sendAt ? `, due ${formatSlot(m.sendAt, viewZone())}` : ''}`,
+  BookingRescheduled: () => 'A “your booking has moved” message',
+  BookingCancelled: () => 'A cancellation',
 };
 
-function outboxList() {
-  const items = backend.outbox.filter((m) => backend.rows.some((r) => r.id === m.bookingId) || m.type === 'cancelled');
+function outboxList(messages) {
+  const real = api.mode === 'http';
   return h('details', { class: 'outbox' },
     h('summary', { text: 'What happens next' }),
-    h('p', { text: 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (ADR-AB-0005). This demo only lists them: nothing is sent.' }),
-    h('ul', {}, items.map((m) => h('li', { text: OUTBOX_TEXT[m.type]?.(m) ?? m.type }))));
+    h('p', { text: real
+      ? 'These were written to the outbox in the same transaction as the booking. The notification worker sends them through a stand-in provider, so a provider outage can’t stop a booking (ADR-AB-0005). Nothing leaves this computer: the panel below shows them being sent.'
+      : 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (ADR-AB-0005). This demo only lists them: nothing is sent.' }),
+    h('ul', {}, messages.map((m) => h('li', { text: `${(OUTBOX_TEXT[m.type]?.(m) ?? m.type)}${m.channel ? ` by ${m.channel}` : ''}, ${m.status === 'sent' ? 'sent' : 'queued'}.` }))));
 }
 
 function renderDone() {
@@ -424,9 +467,9 @@ function renderDone() {
       h('p', { text: `${when(b.start)} with ${staffName(b.staffId)}` }),
       h('p', { class: 'meta', text: `At the clinic: ${formatSlot(b.start, BUSINESS.timeZone)}` }),
       h('p', { class: 'meta', text: `Booking reference ${b.id} (invented for the demo).` })),
-    outboxList(),
+    outboxList(b.messages ?? []),
     h('div', { class: 'actions' },
-      h('button', { type: 'button', class: 'btn btn-primary', text: 'Change time', onclick: () => { state.moving = true; state.serviceId = b.serviceId; state.staffId = 'any'; state.slot = null; state.alert = null; go('times', { say: 'Choose a new time.' }); } }),
+      h('button', { type: 'button', class: 'btn btn-primary', text: 'Change time', onclick: () => { state.moving = true; state.serviceId = b.serviceId; state.staffId = 'any'; state.slot = null; state.alert = null; showTimes({ say: 'Choose a new time.' }); } }),
       h('button', { type: 'button', class: 'btn', text: 'Cancel booking', onclick: () => { state.alert = null; go('cancel'); } }),
       h('button', { type: 'button', class: 'btn btn-quiet', text: 'Book another appointment', onclick: newBooking }))];
 }
@@ -441,14 +484,20 @@ function renderCancel() {
   return [heading('Cancel this booking?'),
     h('p', { text: `${serviceName(b.serviceId)}, ${when(b.start)} with ${staffName(b.staffId)}.` }),
     h('div', { class: 'actions' },
-      h('button', { type: 'button', class: 'btn btn-danger', text: 'Yes, cancel the booking', onclick: () => { backend.cancel(b.id, b.token); state.alert = null; go('cancelled', { say: 'Your booking is cancelled.' }); } }),
+      h('button', { type: 'button', class: 'btn btn-danger', text: 'Yes, cancel the booking', onclick: async () => {
+        if (state.busy) return;
+        state.busy = true;
+        try { state.messages = await api.cancel(b.id, b.token); state.alert = null; go('cancelled', { say: 'Your booking is cancelled.' }); }
+        catch (err) { if (!(err instanceof ApiError)) throw err; state.alert = { text: err.message }; go('done', { say: err.message }); }
+        finally { state.busy = false; }
+      } }),
       h('button', { type: 'button', class: 'btn btn-quiet', text: 'No, keep it', onclick: () => go('done') }))];
 }
 
 function renderCancelled() {
   return [heading('Your booking is cancelled'),
     h('p', { text: 'The time is free again for other customers.' }),
-    outboxList(),
+    outboxList(state.messages),
     h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn btn-primary', text: 'Book another appointment', onclick: newBooking }))];
 }
 
@@ -482,6 +531,20 @@ function reportHeight() {
   send();
 }
 
+/** The service could not be reached at all: say so, and offer another go. */
+function renderFailure(err) {
+  main.replaceChildren(
+    h('h2', { tabindex: '-1', 'data-step-heading': true, text: 'Booking isn’t available just now' }),
+    h('div', { class: 'alert alert-warn', role: 'alert' }, h('p', { text: err?.message ?? 'The booking service can’t be reached.' })),
+    h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn btn-primary', text: 'Try again', onclick: () => location.reload() })));
+  main.querySelector('[data-step-heading]')?.focus();
+}
+
 applyBrand();
-render();
 reportHeight();
+if (!api) {
+  renderFailure(startupError);
+} else {
+  render();
+  if (api.mode === 'http') document.body.append(createPanel(api, { announce }));
+}

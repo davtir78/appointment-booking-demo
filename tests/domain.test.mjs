@@ -253,16 +253,24 @@ test('cancelling frees the time and queues a message', () => {
 
 // ── the demo's promises ─────────────────────────────────────────────────────────────────────────────
 
-test('nothing in the page code talks to a network or keeps anything', () => {
+test('only the API-mode files can reach a network, and nothing anywhere keeps anything', () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   const sources = ['widget', 'js'].flatMap((dir) => readdirSync(join(root, dir))
     .filter((f) => f.endsWith('.js'))
     .map((f) => ({ f: `${dir}/${f}`, text: readFileSync(join(root, dir, f), 'utf8') })));
-  assert.ok(sources.length >= 6, `expected the widget and host scripts, found ${sources.map((s) => s.f).join(', ')}`);
+  assert.ok(sources.length >= 8, `expected the widget and host scripts, found ${sources.map((s) => s.f).join(', ')}`);
+  // widget/api.js and widget/panel.js are the API mode. On the public site their requests cannot happen:
+  // that build's content security policy has connect-src 'none' (tested in the browser tests).
+  const apiMode = new Set(['widget/api.js', 'widget/panel.js']);
+  const strip = (text) => text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const { f, text } of sources) {
-    const code = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-    for (const banned of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'localStorage', 'sessionStorage', 'indexedDB', 'document.cookie']) {
-      assert.ok(!code.includes(banned), `${f} must not use ${banned}`);
+    const code = strip(text);
+    if (!apiMode.has(f)) {
+      for (const banned of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon']) assert.ok(!code.includes(banned), `${f} must not use ${banned}`);
     }
+    for (const banned of ['localStorage', 'sessionStorage', 'indexedDB', 'document.cookie']) assert.ok(!code.includes(banned), `${f} must not use ${banned}`);
+  }
+  for (const page of ['index.html', 'widget/index.html']) {
+    assert.match(readFileSync(join(root, page), 'utf8'), /connect-src 'none'/, `${page} forbids all requests`);
   }
 });

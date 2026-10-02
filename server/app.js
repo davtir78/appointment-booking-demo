@@ -144,7 +144,10 @@ export function createApp({ clock = createClock(), origins = [], staticRoot = pr
       }
       if (m[2] === 'holds' && method === 'POST') {
         trace.route = 'POST /v1/businesses/{id}/holds';
-        const result = svc.createHold(b, await jsonBody(req), idempotencyKey(req));
+        const body = await jsonBody(req);
+        // Times travel as ISO 8601 instants (ICR-AB-0001); the service works in milliseconds.
+        if (typeof body.start === 'string') body.start = Date.parse(body.start);
+        const result = svc.createHold(b, body, idempotencyKey(req));
         return { ...result, body: { ...result.body, serverTime: clock.now() } };
       }
       throw new HttpError(404, 'unknown_route', 'No such operation.');
@@ -319,7 +322,8 @@ export function createApp({ clock = createClock(), origins = [], staticRoot = pr
       res.writeHead(status, headers);
       res.end(JSON.stringify(present(payload)));
     }
-    ctx.log.write('gateway', 'request', { route: trace.route ?? `${req.method} ${url.pathname.split('/').slice(0, 3).join('/')}`, status, ms: Math.round((performance.now() - started) * 10) / 10, ...(trace.businessId ? { businessId: trace.businessId } : {}), ...(replayed ? { replayed: true } : {}) },
+    // The demo's own inspection calls (the panel polls every couple of seconds) are not part of the system being shown.
+    if (!url.pathname.startsWith('/_demo/')) ctx.log.write('gateway', 'request', { route: trace.route ?? `${req.method} ${url.pathname.split('/').slice(0, 3).join('/')}`, status, ms: Math.round((performance.now() - started) * 10) / 10, ...(trace.businessId ? { businessId: trace.businessId } : {}), ...(replayed ? { replayed: true } : {}) },
       { traceId, ref: 'ICR-AB-0001#observability', level: status >= 500 ? 'error' : 'info' });
   }
 
