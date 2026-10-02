@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CRITERIA = { 'ICR-AB-0001': 6, 'ICR-AB-0002': 5, 'ICR-AB-0003': 5 }; // the numbered acceptance criteria in each contract
+const CRITERIA = { 'ICR-AB-0001': 8, 'ICR-AB-0002': 7, 'ICR-AB-0003': 5 }; // the numbered acceptance criteria in each contract
 
 const testFiles = readdirSync(join(ROOT, 'tests')).filter((f) => f.endsWith('.test.mjs') && f !== 'conformance.test.mjs');
 const titles = testFiles.flatMap((f) => [...readFileSync(join(ROOT, 'tests', f), 'utf8').matchAll(/test\('(\[ICR-AB-000\d #\d\][^']*(?:\\'[^']*)*)'/g)].map((m) => ({ file: f, title: m[1] })));
@@ -22,7 +22,7 @@ test('every acceptance criterion of the three contracts has an automated test', 
       assert.ok(titles.some((t) => t.title.startsWith(tag)), `${tag} has no test`);
     }
   }
-  assert.equal(new Set(titles.map((t) => t.title.slice(0, t.title.indexOf(']') + 1))).size, 16, 'and there are exactly sixteen criteria');
+  assert.equal(new Set(titles.map((t) => t.title.slice(0, t.title.indexOf(']') + 1))).size, 20, 'and there are exactly twenty criteria');
 });
 
 test('the README’s conformance table names every criterion and the file of its test', () => {

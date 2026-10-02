@@ -8,7 +8,7 @@
 //   - writes each booking into the staff calendar, idempotently on the booking id, retrying through
 //     an outage so nothing is lost;
 //   - renews each change subscription well before it lapses, and treats a lapse as an alert. The
-//     contract is still "proposed" because this schedule was not yet designed; this is a design for it.
+//     contract stays "proposed" until the platform lead agrees this schedule and it is tried against a real provider.
 //
 // What it stores for a busy interval is a start, an end and a reference: no title, attendee or
 // description (ICR-AB-0002 criterion 5). Tokens are sealed, standing in for the secrets manager.

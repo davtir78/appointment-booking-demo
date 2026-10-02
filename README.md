@@ -29,7 +29,7 @@ Open the **Behind the scenes** panel under the widget. For every request the wid
 | **Requirements** | [booking, availability, notifications](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/requirements) | What must be true, as scenarios you can provoke: the lost race and the five-minute hold (booking), times in another zone (availability), the messaging outage and the cancelled-before-sent confirmation (notifications) |
 | **Decision record (MADR)** | [the seven ADRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/decisions) | How the design makes the requirements true: the framed widget (ADR-1), the key, registered domains and rate limit of the API (ADR-2), the calendar change the sync missed (ADR-3), building the calendar connectors rather than buying them (ADR-4), tenancy (ADR-5), hosting and recovery (ADR-6), the database (ADR-7). The outbox is a design note in the notification requirements |
 | **Pattern** | [Integration API Management (External)](https://www.itarchitecturepatterns.net/patterns/int-api-external), [Native Connectors (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-native-cloud), [Middleware Services (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-middleware-cloud) | The gateway, the calendar connector and the notification worker are built on these three; the panel links each event to its pattern. (The architecture pattern *records* wait for the format in #12) |
-| **Interface contract (ICR)** | [the three ICRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/contracts) | Their sixteen acceptance criteria are automated tests; see the conformance table |
+| **Interface contract (ICR)** | [the three ICRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/contracts) | Their twenty acceptance criteria are automated tests; see the conformance table |
 
 ### The SAD's components, and what stands in for them
 
@@ -59,11 +59,15 @@ Each numbered acceptance criterion of the three contracts is an automated test. 
 | ICR-AB-0001 #4 | A repeated `POST` with the same idempotency key creates nothing and returns the original | `api.test.mjs` |
 | ICR-AB-0001 #5 | Every time in every response is an ISO 8601 instant with an offset | `api.test.mjs` |
 | ICR-AB-0001 #6 | No log line contains a customer's name, email or phone | `api.test.mjs` (the logger also refuses such a field outright) |
+| ICR-AB-0001 #7 | With the calendar provider unavailable a confirmation succeeds, and the skipped check is logged | `calendar.test.mjs` |
+| ICR-AB-0001 #8 | A hold can be extended ten times and no more, and released at once | `api.test.mjs` |
 | ICR-AB-0002 #1 | An appointment added to a staff calendar removes the overlapping slots within 60 seconds | `calendar.test.mjs` |
 | ICR-AB-0002 #2 | Confirming creates exactly one calendar event; confirming again creates no second | `calendar.test.mjs` |
 | ICR-AB-0002 #3 | Revoking access deletes stored tokens and stops synchronisation within a minute | `calendar.test.mjs` |
 | ICR-AB-0002 #4 | After an hour's outage nothing is lost, and everything is consistent within ten minutes of the provider's return | `calendar.test.mjs` |
 | ICR-AB-0002 #5 | No stored busy interval holds an event title, attendee or description | `calendar.test.mjs` |
+| ICR-AB-0002 #6 | A subscription with less than a day left is renewed; one that lapsed alerts, is recreated and re-synchronised | `calendar.test.mjs` |
+| ICR-AB-0002 #7 | A reachable provider's live check refuses a conflict; an unreachable one is recorded as skipped, not as free | `calendar.test.mjs` |
 | ICR-AB-0003 #1 | With the provider unavailable bookings succeed; when it returns every pending message is sent exactly once | `notifications.test.mjs` |
 | ICR-AB-0003 #2 | A booking cancelled before its confirmation is sent produces a cancellation and no confirmation | `notifications.test.mjs` |
 | ICR-AB-0003 #3 | A reminder whose window passed during an outage is not sent late | `notifications.test.mjs` |
@@ -86,7 +90,7 @@ Beyond the criteria, the tests check the rest of each contract: every error code
 
 ## Findings for the records
 
-Building the API found places where the records are silent or wrong. None has been changed in the records.
+Building the API found places where the records were silent or wrong. All seven are now in the sample's records (ICR-AB-0001 v1.1.0, ICR-AB-0002 v0.10.0, ICR-AB-0003 v1.0.1, ADR-AB-0003, the availability requirements and the SAD), each with an acceptance criterion that a test here proves. Where the records call something *proposed*, it is because the contract's owners have not yet agreed it.
 
 1. **ICR-AB-0001** has no way to **extend** a hold. The booking requirements say a hold lasts five minutes and can be extended at least ten times (WCAG 2.2.1 requires a way to extend a time limit), so the API has `POST /v1/holds/{id}/extend`, marked as proposed.
 2. **ICR-AB-0001** has no way to **release** a hold either, so a customer who goes back to change a time blocks their own first choice for five minutes. The API has `DELETE /v1/holds/{id}`. Both additions are marked as proposed.

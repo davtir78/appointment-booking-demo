@@ -265,7 +265,7 @@ test('rescheduling moves the booking and frees the old time; cancelling frees th
   assert.equal((await s.api.reschedule(b2.booking.id, b2.booking.token, wrongService.id)).status, 422, 'only to a time for the same service');
 });
 
-test('holds can be extended and released (proposed additions to the contract)', async () => {
+test('[ICR-AB-0001 #8] extending a hold adds five minutes, an eleventh extension is refused, and releasing a hold frees its time at once', async () => {
   const s = await start();
   const slot = await s.pick();
   const hold = (await s.api.hold(slot)).json;
@@ -278,6 +278,13 @@ test('holds can be extended and released (proposed additions to the contract)', 
   assert.equal((await s.api.hold(slot)).status, 201, 'released, so free at once');
   s.clock.advance(6 * MIN);
   assert.equal((await s.api.extend(hold.id)).status, 404, 'a released hold is gone');
+
+  const other = await s.pick('followup', { staff: 'sam', index: 4 });
+  const kept = (await s.api.hold(other)).json;
+  for (let i = 1; i <= 10; i++) assert.equal((await s.api.extend(kept.id)).status, 200, `extension ${i} is allowed`);
+  const eleventh = await s.api.extend(kept.id);
+  assert.equal(eleventh.status, 409);
+  assert.equal(eleventh.json.code, 'too_many_extensions');
 });
 
 test('the browser can read answers cross-origin only from a registered page, including refusals', async () => {

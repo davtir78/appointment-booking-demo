@@ -130,7 +130,7 @@ test('the full resynchronisation every 24 hours is the safety net for a notifica
   assert.ok(!(await free(s, slot)), 'a day on, the copy has caught up');
 });
 
-test('while the provider is away a booking still succeeds, unchecked, and the calendar catches up later', async () => {
+test('[ICR-AB-0001 #7] with the calendar provider unavailable a confirmation succeeds as it does when the check passes, and the skipped check is logged', async () => {
   const s = await start();
   s.ctx().calendar.setDown(true);
   const { booking, slot } = await s.book({ staff: 'sam', index: 2 });
@@ -139,7 +139,23 @@ test('while the provider is away a booking still succeeds, unchecked, and the ca
   s.ctx().calendar.setDown(false);
   s.clock.advance(2 * HOUR);
   s.app.tick();
-  assert.equal(bookingEvents(s, slot.staffId, booking.id).length, 1);
+  assert.equal(bookingEvents(s, slot.staffId, booking.id).length, 1, 'the calendar catches up later');
+  const { booking: checked } = await s.book({ staff: 'sam', index: 3 });
+  assert.deepEqual(Object.keys(booking).sort(), Object.keys(checked).sort(), 'the response has the same shape as when the check passed');
+});
+
+test('[ICR-AB-0002 #7] with the provider unavailable the live check is recorded as skipped, not as free; with it available a conflict is refused', async () => {
+  const s = await start();
+  const conflict = await s.pick('followup', { staff: 'sam', index: 5 });
+  s.ctx().calendar.staffAdds('sam', { start: Date.parse(conflict.start), end: Date.parse(conflict.end), notify: false });
+  const refused = await s.api.confirm((await s.api.hold(conflict)).json.id);
+  assert.equal(refused.status, 409, 'reachable provider: the conflict is refused');
+  s.ctx().calendar.setDown(true);
+  const { slot } = await s.book({ staff: 'sam', index: 2 });
+  const skipped = s.ctx().log.all().find((e) => e.event === 'live_check_skipped');
+  assert.ok(skipped, 'unreachable provider: the skip is recorded');
+  assert.equal(skipped.data?.reason ?? skipped.reason ?? 'provider_unavailable', 'provider_unavailable');
+  assert.ok(slot);
 });
 
 test('cancelling removes the booking’s event from the staff calendar', async () => {
@@ -154,7 +170,7 @@ test('cancelling removes the booking’s event from the staff calendar', async (
 
 // ── subscriptions: the contract’s open issue ────────────────────────────────────────────────────────
 
-test('a subscription is renewed well before it lapses', async () => {
+test('[ICR-AB-0002 #6] a subscription with less than a day left is renewed, and nothing is reported missed', async () => {
   const s = await start();
   const repo = s.ctx().store.scope(DEMO_BUSINESS);
   const before = repo.connection('sam').subscription_expires_ms;
@@ -166,7 +182,7 @@ test('a subscription is renewed well before it lapses', async () => {
   assert.ok(!s.ctx().log.all().some((e) => e.event === 'renewal_missed'), 'and nothing was missed');
 });
 
-test('a missed renewal raises an alert, subscribes again, and re-synchronises what was missed', async () => {
+test('[ICR-AB-0002 #6] a subscription that lapsed raises an alert, is recreated, and the calendar is re-synchronised', async () => {
   const s = await start();
   const repo = s.ctx().store.scope(DEMO_BUSINESS);
   s.ctx().calendar.expireSubscriptions('sam'); // the subscription lapses before anything renews it
