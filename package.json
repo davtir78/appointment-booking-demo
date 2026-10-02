@@ -5,12 +5,16 @@
   "description": "Clickable demo of the Appointment Booking (sample) widget: fictional data, no network, nothing kept.",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/domain.test.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test tests/domain.test.mjs tests/api.test.mjs tests/calendar.test.mjs tests/notifications.test.mjs tests/conformance.test.mjs",
+    "test:e2e": "node --disable-warning=ExperimentalWarning --test tests/e2e.test.mjs tests/e2e-api.test.mjs",
     "serve": "node tools/serve.mjs",
-    "test:e2e": "node --test tests/e2e.test.mjs"
+    "demo": "node --disable-warning=ExperimentalWarning server/start.js"
   },
   "devDependencies": {
     "axe-core": "4.13.0",
     "playwright": "1.61.1"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

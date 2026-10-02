@@ -48,6 +48,22 @@ test('calendar arithmetic on dates ignores daylight saving', () => {
   assert.equal(dateInZone(Date.UTC(2026, 8, 27, 23, 0), SYDNEY), '2026-09-28');
 });
 
+test('the pretend calendar never fails, whatever the date: every day for two years, every person', async () => {
+  // A signed shift on an unsigned hash once made some days throw "undefined is not iterable".
+  const { syncedBusy } = await import('../widget/domain.js');
+  let blocks = 0;
+  for (const member of STAFF) {
+    for (let n = 0; n < 730; n++) {
+      const date = addDays('2026-01-01', n);
+      for (const b of syncedBusy(member, date, SYDNEY)) {
+        blocks++;
+        assert.ok(Number.isFinite(b.start) && b.end > b.start, `${member.id} ${date}`);
+      }
+    }
+  }
+  assert.ok(blocks > 500, 'and there is busy time to find');
+});
+
 // ── availability (ADR-AB-0002) ──────────────────────────────────────────────────────────────────────
 
 test('availability respects notice, working hours and the synchronised calendar', () => {

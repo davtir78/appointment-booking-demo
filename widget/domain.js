@@ -63,13 +63,13 @@ export function syncedBusy(member, dateStr, timeZone) {
   const h = hash(`${member.id}/${dateStr}`);
   const blocks = [];
   for (let i = 0; i < h % 3; i++) {
-    const [from, to] = windows[(h >> (i + 2)) % windows.length];
+    const [from, to] = windows[(h >>> (i + 2)) % windows.length];
     const open = zonedTimeToUtc(dateStr, from, timeZone);
     const close = zonedTimeToUtc(dateStr, to, timeZone);
     if (open === null || close === null) continue;
     const halfHours = Math.max(1, Math.floor((close - open) / (30 * MIN)) - 2);
-    const start = open + ((h >> (i + 5)) % halfHours) * 30 * MIN;
-    blocks.push({ start, end: start + (((h >> (i + 9)) & 1) ? 60 : 30) * MIN });
+    const start = open + ((h >>> (i + 5)) % halfHours) * 30 * MIN;
+    blocks.push({ start, end: start + (((h >>> (i + 9)) & 1) ? 60 : 30) * MIN });
   }
   return blocks;
 }
