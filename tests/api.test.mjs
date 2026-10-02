@@ -1,5 +1,5 @@
 // ICR-AB-0001 Booking API: its six acceptance criteria, then the rest of the contract and the
-// database rule of ADR-AB-0003. Titles that begin "[ICR-AB-0001 #n]" are the criteria; the README's
+// database rule of the booking requirements. Titles that begin "[ICR-AB-0001 #n]" are the criteria; the README's
 // conformance table names them, and tests/conformance.test.mjs fails if one goes missing.
 
 import test, { after } from 'node:test';
@@ -221,7 +221,7 @@ test('traceparent is accepted, continued and returned on every response', async 
   assert.ok(s.ctx().log.all().some((e) => e.component === 'gateway' && e.traceId === traceId), 'and the log is findable by it');
 });
 
-test('a business sees only its own data: the other clinic’s key cannot read or touch it (ADR-AB-0004)', async () => {
+test('a business sees only its own data: the other clinic’s key cannot read or touch it (ADR-AB-0005)', async () => {
   const s = await start();
   const { hold, booking } = await s.book();
   const asOther = (method, path, opts = {}) => s.call(method, path, { key: OTHER_KEY, ...opts });
@@ -330,9 +330,9 @@ test('the widget is framed only by the pages the business registered', async () 
   assert.equal((await fetch(`${s.base}/widget/../server/app.js`)).status, 404, 'and no other file is served');
 });
 
-// ── the database rule (ADR-AB-0003) ─────────────────────────────────────────────────────────────────
+// ── the database rule (booking requirements, ADR-AB-0007) ─────────────────────────────────────────────────────────────────
 
-test('the database itself refuses an overlapping booking, whatever the application does (ADR-AB-0003)', async () => {
+test('the database itself refuses an overlapping booking, whatever the application does (booking requirements)', async () => {
   const s = await start();
   const { slot } = await s.book();
   const { db } = s.ctx().store;

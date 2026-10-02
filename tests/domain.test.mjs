@@ -18,7 +18,7 @@ function setup() {
 }
 const rejects = (fn, status, code) => assert.throws(fn, (e) => e instanceof ApiError && e.status === status && (!code || e.code === code));
 
-// ── time zones (ADR-AB-0006) ────────────────────────────────────────────────────────────────────────
+// ── time zones (availability requirements) ────────────────────────────────────────────────────────────────────────
 
 test('working hours are local: 9 am is 9 am before and after daylight saving starts', () => {
   assert.equal(zonedTimeToUtc('2026-10-02', '09:00', SYDNEY), Date.UTC(2026, 9, 1, 23, 0), 'AEST, UTC+10');
@@ -64,7 +64,7 @@ test('the pretend calendar never fails, whatever the date: every day for two yea
   assert.ok(blocks > 500, 'and there is busy time to find');
 });
 
-// ── availability (ADR-AB-0002) ──────────────────────────────────────────────────────────────────────
+// ── availability (ADR-AB-0003) ──────────────────────────────────────────────────────────────────────
 
 test('availability respects notice, working hours and the synchronised calendar', () => {
   const { clock, backend } = setup();
@@ -82,7 +82,7 @@ test('a service is only offered by the people who provide it', () => {
   rejects(() => backend.availability({ serviceId: 'nope' }), 404);
 });
 
-// ── holds and the overlap constraint (ADR-AB-0003) ──────────────────────────────────────────────────
+// ── holds and the overlap constraint (booking requirements) ──────────────────────────────────────────────────
 
 test('choosing a slot holds it for five minutes, and it disappears from availability', () => {
   const { clock, backend } = setup();
@@ -172,7 +172,7 @@ test('releasing a hold frees the time at once, so a customer can re-choose it', 
   assert.doesNotThrow(() => backend.createHold({ serviceId: 'followup', staffId: 'sam', start: slot.start }));
 });
 
-// ── confirming (ADR-AB-0002, ADR-AB-0005) ───────────────────────────────────────────────────────────
+// ── confirming (ADR-AB-0003, ADR-AB-0006) ───────────────────────────────────────────────────────────
 
 const CUSTOMER = { name: 'Sample Customer', email: 'sample.customer@example.com', phone: '0400 000 000' };
 

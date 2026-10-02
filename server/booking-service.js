@@ -1,5 +1,5 @@
-// The Availability Service and Booking Service of the SAD, in one module (ICR-AB-0001, ADR-AB-0002,
-// ADR-AB-0003, ADR-AB-0005, ADR-AB-0006). Every method takes the business the gateway resolved from
+// The Availability Service and Booking Service of the SAD, in one module (ICR-AB-0001, ADR-AB-0003,
+// ADR-AB-0006 and the booking, availability and notification requirements). Every method takes the business the gateway resolved from
 // the widget key and reaches data only through `store.scope(businessId)`.
 //
 // Times are UTC instants (milliseconds here; the gateway renders them as ISO 8601). Working hours
@@ -13,7 +13,7 @@ import { HttpError } from './errors.js';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
-export const HOLD_MS = 5 * MIN;           // ADR-AB-0003
+export const HOLD_MS = 5 * MIN;           // the booking requirements: a hold lasts five minutes
 export const MAX_EXTENSIONS = 10;         // WCAG 2.2.1; a proposed addition to the contract
 export const NOTICE_MS = HOUR;            // nothing bookable inside the next hour
 export const MAX_SEARCH_DAYS = 21;
@@ -163,11 +163,11 @@ export function createBookingService({ store, connector, worker, clock, log }) {
             repo.insertHold({ id: holdId, staffId: member.id, serviceId: service.id, start: slot.start, end: slot.end, expiresAt: clock.now() + HOLD_MS });
             return repo.row(holdId);
           });
-          log.write('booking', 'hold_created', { businessId, holdId: row.id, staffId: member.id }, { ref: 'ADR-AB-0003' });
+          log.write('booking', 'hold_created', { businessId, holdId: row.id, staffId: member.id }, { ref: 'REQ-BOOKING' });
           return { status: 201, body: holdView(row) };
         } catch (e) {
           if (e instanceof OverlapError) {
-            log.write('booking', 'overlap_refused', { businessId, staffId: member.id }, { level: 'warn', ref: 'ADR-AB-0003' });
+            log.write('booking', 'overlap_refused', { businessId, staffId: member.id }, { level: 'warn', ref: 'REQ-BOOKING' });
             throw taken(businessId, params);
           }
           throw e;
@@ -183,7 +183,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
       if (row.kind !== 'hold' || row.expiresAt <= clock.now()) throw new HttpError(410, 'hold_expired', 'Your hold on that time has ended.');
       if (row.extensions >= MAX_EXTENSIONS) throw new HttpError(409, 'too_many_extensions', 'This time can’t be held any longer.');
       store.tx(() => repo.extendHold(holdId, clock.now() + HOLD_MS));
-      log.write('booking', 'hold_extended', { businessId, holdId }, { ref: 'ADR-AB-0003' });
+      log.write('booking', 'hold_extended', { businessId, holdId }, { ref: 'REQ-BOOKING' });
       return holdView(repo.row(holdId));
     },
 
@@ -194,7 +194,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
       if (!row) throw new HttpError(404, 'unknown_hold', 'No such hold.');
       if (row.kind !== 'hold') throw new HttpError(409, 'already_confirmed', 'That hold is already a booking.');
       store.tx(() => repo.deleteRow(holdId));
-      log.write('booking', 'hold_released', { businessId, holdId }, { ref: 'ADR-AB-0003' });
+      log.write('booking', 'hold_released', { businessId, holdId }, { ref: 'REQ-BOOKING' });
     },
 
     /** POST /holds/{id}/confirm */
@@ -215,11 +215,11 @@ export function createBookingService({ store, connector, worker, clock, log }) {
         if (c.phone && !PHONE.test(String(c.phone))) throw new HttpError(400, 'invalid_request', 'That phone number can’t be used.');
         const customer = { name, email: c.email.trim(), phone: c.phone ? String(c.phone).trim() : null };
 
-        // ADR-AB-0002: the copy is only a copy. Ask the staff member's own calendar about this one slot.
+        // ADR-AB-0003: the copy is only a copy. Ask the staff member's own calendar about this one slot.
         const live = connector.liveCheck(businessId, row.staffId, row.start, row.end);
         if (live.conflict) {
           store.tx(() => repo.deleteRow(holdId));
-          log.write('booking', 'live_check_failed', { businessId, holdId }, { level: 'warn', ref: 'ADR-AB-0002' });
+          log.write('booking', 'live_check_failed', { businessId, holdId }, { level: 'warn', ref: 'ADR-AB-0003' });
           throw taken(businessId, params, 'That time is no longer free in the calendar.', 'calendar_conflict');
         }
 
@@ -229,7 +229,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
           repo.confirmHold(holdId, { bookingId, token, customer });
           const booked = repo.row(holdId);
           const data = messageData(businessId, business, booked, token);
-          // The messages are written in the same transaction as the booking (ADR-AB-0005).
+          // The messages are written in the same transaction as the booking (ADR-AB-0006).
           worker.enqueue(businessId, { type: 'BookingConfirmed', bookingId, eventId: `evt_${bookingId}_confirmed`, booking: data, customer });
           reminderFor(businessId, booked, customer, data);
           repo.calendarWriteAdd({ staffId: booked.staffId, bookingId, op: 'upsert', start: booked.start, end: booked.end, firstName: name.split(/\s+/)[0], serviceName: data.serviceName });
@@ -296,7 +296,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
       for (const businessId of store.businessIds()) {
         const repo = store.scope(businessId);
         const purged = store.tx(() => repo.purgeExpiredHolds() + repo.idemPurge(clock.now() - IDEMPOTENCY_TTL_MS));
-        if (purged) log.write('booking', 'housekeeping', { businessId, purged }, { ref: 'ADR-AB-0003' });
+        if (purged) log.write('booking', 'housekeeping', { businessId, purged }, { ref: 'REQ-BOOKING' });
       }
     },
   };

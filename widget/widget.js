@@ -247,8 +247,8 @@ function demoControls() {
     h('label', { class: 'check' },
       h('input', { type: 'checkbox', checked: api.demo.race() || false, onchange: (e) => { api.demo.setRace(e.target.checked); } }),
       h('span', { text: 'Another customer takes the time I’m about to hold' })),
-    h('p', { class: 'hint', text: 'Tick this, then hold a time: you’ll see the overlap rule reject the second request and offer other times (ADR-AB-0003).' }),
-    hint ? h('p', { class: 'hint', text: `Or try Alex on ${formatDay(hint.date)} at 10:00 am (a 30-minute follow-up). The synchronised calendar shows it free, but Alex’s live calendar has a new event, so the check at confirmation catches it (ADR-AB-0002).` }) : null);
+    h('p', { class: 'hint', text: 'Tick this, then hold a time: you’ll see the overlap rule reject the second request and offer other times (the booking requirements).' }),
+    hint ? h('p', { class: 'hint', text: `Or try Alex on ${formatDay(hint.date)} at 10:00 am (a 30-minute follow-up). The synchronised calendar shows it free, but Alex’s live calendar has a new event, so the check at confirmation catches it (ADR-AB-0003).` }) : null);
 }
 
 async function onHold(e) {
@@ -454,8 +454,8 @@ function outboxList(messages) {
   return h('details', { class: 'outbox' },
     h('summary', { text: 'What happens next' }),
     h('p', { text: real
-      ? 'These were written to the outbox in the same transaction as the booking. The notification worker sends them through a stand-in provider, so a provider outage can’t stop a booking (ADR-AB-0005). Nothing leaves this computer: the panel below shows them being sent.'
-      : 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (ADR-AB-0005). This demo only lists them: nothing is sent.' }),
+      ? 'These were written to the outbox in the same transaction as the booking. The notification worker sends them through a stand-in provider, so a provider outage can’t stop a booking (ADR-AB-0006). Nothing leaves this computer: the panel below shows them being sent.'
+      : 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (ADR-AB-0006). This demo only lists them: nothing is sent.' }),
     h('ul', {}, messages.map((m) => h('li', { text: `${(OUTBOX_TEXT[m.type]?.(m) ?? m.type)}${m.channel ? ` by ${m.channel}` : ''}, ${m.status === 'sent' ? 'sent' : 'queued'}.` }))));
 }
 

@@ -4,7 +4,7 @@
 export const BUSINESS = {
   id: 'example-clinic',
   name: 'Example Clinic (fictional)',
-  // Working hours below are rules in this zone (ADR-AB-0006); bookings are stored as UTC instants.
+  // Working hours below are rules in this zone (the availability requirements); bookings are stored as UTC instants.
   timeZone: 'Australia/Sydney',
 };
 

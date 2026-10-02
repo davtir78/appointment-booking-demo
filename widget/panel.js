@@ -17,11 +17,15 @@ const SITE = 'https://www.itarchitecturepatterns.net';
 
 const RECORDS = {
   'ADR-AB-0001': ['decisions/0001-embed-mechanism.md', 'Embed the widget in an iframe'],
-  'ADR-AB-0002': ['decisions/0002-availability-source-of-truth.md', 'Availability from a synchronised copy'],
-  'ADR-AB-0003': ['decisions/0003-double-booking-prevention.md', 'A hold and a database constraint'],
-  'ADR-AB-0004': ['decisions/0004-multi-tenancy.md', 'Shared database, tenant isolation'],
-  'ADR-AB-0005': ['decisions/0005-notification-delivery.md', 'Notifications through an outbox'],
-  'ADR-AB-0006': ['decisions/0006-time-zones.md', 'UTC instants, local rules'],
+  'ADR-AB-0002': ['decisions/0002-api-exposure.md', 'A public REST API behind a gateway'],
+  'ADR-AB-0003': ['decisions/0003-availability-source-of-truth.md', 'Availability from a synchronised copy'],
+  'ADR-AB-0004': ['decisions/0004-calendar-integration.md', 'Each provider’s own API and notifications'],
+  'ADR-AB-0005': ['decisions/0005-multi-tenancy.md', 'Shared database, tenant isolation'],
+  'ADR-AB-0006': ['decisions/0006-notification-delivery.md', 'Notifications through an outbox'],
+  'ADR-AB-0007': ['decisions/0007-data-store.md', 'A managed PostgreSQL database'],
+  'REQ-BOOKING': ['requirements/booking.md', 'Booking requirements'],
+  'REQ-AVAILABILITY': ['requirements/availability.md', 'Availability requirements'],
+  'REQ-NOTIFICATIONS': ['requirements/notifications.md', 'Notification requirements'],
   'ICR-AB-0001': ['contracts/ICR-AB-0001-booking-api.md', 'Booking API'],
   'ICR-AB-0002': ['contracts/ICR-AB-0002-calendar-sync.md', 'Calendar synchronisation'],
   'ICR-AB-0003': ['contracts/ICR-AB-0003-notifications.md', 'Notification delivery'],
@@ -29,10 +33,10 @@ const RECORDS = {
 
 // Which SAD component each part of the server is, and the library pattern it is built on.
 const COMPONENTS = {
-  gateway: { name: 'API gateway', pattern: ['Integration API Management (External)', 'int-api-external'] },
-  booking: { name: 'Booking service', pattern: null },
-  calendar: { name: 'Calendar connectors', pattern: ['Integration Native Connectors (Cloud)', 'int-native-cloud'] },
-  notifications: { name: 'Notification worker', pattern: ['Integration Middleware Services (Cloud)', 'int-middleware-cloud'] },
+  gateway: { name: 'API gateway', adr: 'ADR-AB-0002', pattern: ['Integration API Management (External)', 'int-api-external'] },
+  booking: { name: 'Booking service', adr: 'ADR-AB-0007', pattern: null },
+  calendar: { name: 'Calendar connectors', adr: 'ADR-AB-0004', pattern: ['Integration Native Connectors (Cloud)', 'int-native-cloud'] },
+  notifications: { name: 'Notification worker', adr: 'ADR-AB-0006', pattern: ['Integration Middleware Services (Cloud)', 'int-middleware-cloud'] },
   provider: { name: 'Stand-in provider', pattern: null },
   server: { name: 'Server', pattern: null },
 };
@@ -107,6 +111,7 @@ export function createPanel(api, { announce }) {
         h('span', { class: 'event-links' },
           ' ', link(SAD, 'SAD', component.name),
           ref ? [' · ', ref] : null,
+          component.adr && !String(e.ref ?? '').startsWith(component.adr) ? [' · ', refLink(component.adr)] : null,
           component.pattern ? [' · ', link(`${SITE}/patterns/${component.pattern[1]}`, 'pattern', component.pattern[0])] : null));
     });
     eventsList.replaceChildren(...items);
@@ -161,6 +166,7 @@ export function createPanel(api, { announce }) {
     h('p', { class: 'where' },
       h('strong', { text: 'Read the records: ' }),
       link(`${DOCS}sad.md`, 'Solution architecture design'), ' · ',
+      link(`${DOCS}requirements/`, 'Requirements'), ' · ',
       link(`${DOCS}decisions/`, 'Decisions (ADRs)'), ' · ',
       link(`${DOCS}contracts/`, 'Contracts (ICRs)'), ' · ',
       link(`${SITE}/patterns/int-api-external`, 'Pattern: API management (external)')),

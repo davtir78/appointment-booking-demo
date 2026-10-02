@@ -1,14 +1,14 @@
 // The Booking Store: SQLite standing in for the design's PostgreSQL.
 //
-//   ADR-AB-0003  the overlap rule lives in the database: a trigger refuses any hold or booking that
-//                overlaps an active one for the same staff member, whatever the application does.
-//                An expired hold does not count, so the trigger reads the clock from a one-row table
-//                the application sets in the same transaction.
-//   ADR-AB-0004  tenant isolation. The design uses row-level security, which SQLite does not have.
+//   Booking requirements and ADR-AB-0007: the no-overlap guarantee lives in the database. A trigger
+//                refuses any hold or booking that overlaps an active one for the same staff member,
+//                whatever the application does. An expired hold does not count, so the trigger reads
+//                the clock from a one-row table the application sets in the same transaction.
+//   ADR-AB-0005  tenant isolation. The design uses row-level security, which SQLite does not have.
 //                Here every query goes through `store.scope(businessId)`, the only data path, and each
 //                method puts the business in its WHERE clause. That is isolation by code, not by the
 //                database, and is stated as a difference from the design.
-//   ADR-AB-0005  the transactional outbox is a table written in the same transaction as the booking.
+//   ADR-AB-0006  the transactional outbox is a table written in the same transaction as the booking.
 //   ICR-AB-0002  busy intervals hold no titles, attendees or descriptions: the table has no column
 //                that could.
 
@@ -36,7 +36,7 @@ CREATE TABLE staff (
   PRIMARY KEY (business_id, id)
 );
 
--- Holds and bookings share one table, as in ADR-AB-0003. A hold is a row with kind 'hold' and an expiry.
+-- Holds and bookings share one table (the booking requirements). A hold is a row with kind 'hold' and an expiry.
 CREATE TABLE rows (
   id TEXT PRIMARY KEY,
   business_id TEXT NOT NULL, staff_id TEXT NOT NULL, service_id TEXT NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE calendar_writes (
   status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, next_attempt_ms INTEGER NOT NULL DEFAULT 0
 );
 
--- The transactional outbox (ADR-AB-0005): one row per message, keyed by event id and channel.
+-- The transactional outbox (ADR-AB-0006): one row per message, keyed by event id and channel.
 CREATE TABLE outbox (
   id TEXT PRIMARY KEY,
   business_id TEXT NOT NULL, booking_id TEXT NOT NULL,

@@ -269,7 +269,7 @@ test('every screen says it is a demo', async () => {
 
 // ── behaviours that come from the decisions ─────────────────────────────────────────────────────────
 
-test('losing a race: the overlap rule rejects the hold and other times are offered (ADR-AB-0003)', async () => {
+test('losing a race: the overlap rule rejects the hold and other times are offered (booking requirements)', async () => {
   const { context, frame } = await open();
   await frame.getByRole('radio', { name: /Follow-up/ }).check();
   await frame.getByRole('button', { name: 'Continue' }).click();
@@ -285,7 +285,7 @@ test('losing a race: the overlap rule rejects the hold and other times are offer
   await context.close();
 });
 
-test('the live calendar check catches a change the synchronised copy has not seen (ADR-AB-0002)', async () => {
+test('the live calendar check catches a change the synchronised copy has not seen (ADR-AB-0003)', async () => {
   const { context, frame } = await open();
   await frame.getByRole('radio', { name: /Follow-up/ }).check();
   await frame.getByRole('button', { name: 'Continue' }).click();
@@ -328,7 +328,7 @@ test('a hold can be extended, and ends if it is not (WCAG 2.2.1)', async () => {
   await context.close();
 });
 
-test('times are shown in the chosen zone, with the zone named (ADR-AB-0006)', async () => {
+test('times are shown in the chosen zone, with the zone named (availability requirements)', async () => {
   const { context, frame } = await open();
   await frame.getByRole('radio', { name: /Follow-up/ }).check();
   await frame.getByRole('button', { name: 'Continue' }).click();

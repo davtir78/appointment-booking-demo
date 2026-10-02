@@ -26,7 +26,8 @@ Open the **Behind the scenes** panel under the widget. For every request the wid
 | Template | Record | What you can see running |
 | :--- | :--- | :--- |
 | **Solution architecture design** | [sad.md §4.2](https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/sad.md#42-component-catalog) | Each component in the catalog is a module here (table below), and the panel labels every event with its component |
-| **Decision record (MADR)** | [the six ADRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/decisions) | Each decision is a behaviour you can provoke: the lost race (ADR-3), the calendar change the sync missed (ADR-2), the messaging outage (ADR-5), times in another zone (ADR-6), the framed widget (ADR-1) |
+| **Requirements** | [booking, availability, notifications](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/requirements) | What must be true, as scenarios you can provoke: the lost race and the five-minute hold (booking), times in another zone (availability), the messaging outage and the cancelled-before-sent confirmation (notifications) |
+| **Decision record (MADR)** | [the seven ADRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/decisions) | How the design makes the requirements true: the framed widget (ADR-1), the key, registered domains and rate limit of the API (ADR-2), the calendar change the sync missed (ADR-3), notification and subscription handling (ADR-4), tenancy (ADR-5), the outbox (ADR-6), the database (ADR-7) |
 | **Pattern** | [Integration API Management (External)](https://www.itarchitecturepatterns.net/patterns/int-api-external), [Native Connectors (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-native-cloud), [Middleware Services (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-middleware-cloud) | The gateway, the calendar connector and the notification worker are built on these three; the panel links each event to its pattern. (The architecture pattern *records* wait for the format in #12) |
 | **Interface contract (ICR)** | [the three ICRs](https://github.com/davtir78/itarchitecturepatterns/tree/main/docs/samples/appointment-booking/contracts) | Their sixteen acceptance criteria are automated tests; see the conformance table |
 
@@ -69,13 +70,13 @@ Each numbered acceptance criterion of the three contracts is an automated test. 
 | ICR-AB-0003 #4 | Replaying the same booking event sends nothing new | `notifications.test.mjs` |
 | ICR-AB-0003 #5 | No log line contains a message body, email address or phone number | `notifications.test.mjs` |
 
-Beyond the criteria, the tests check the rest of each contract: every error code and its meaning as a problem document, the rate limit with `Retry-After`, `traceparent`, tenant isolation, token expiry, CORS, and, for ADR-AB-0003, that **the database itself** refuses an overlapping booking when a row is inserted directly, bypassing the application.
+Beyond the criteria, the tests check the rest of each contract: every error code and its meaning as a problem document, the rate limit with `Retry-After`, `traceparent`, tenant isolation, token expiry, CORS, and, for the booking requirements (and ADR-AB-0007), that **the database itself** refuses an overlapping booking when a row is inserted directly, bypassing the application.
 
 ## Where the demo differs from the design
 
 | The design says | The demo does | Consequence |
 | :--- | :--- | :--- |
-| PostgreSQL with an exclusion constraint and row-level security | SQLite with an overlap **trigger**; every query goes through `store.scope(businessId)`, the only data path | The database does refuse overlaps. But tenant isolation here is by code, not by the database, which is weaker than row-level security, and the ADR-AB-0004 tests prove the code, not the database |
+| PostgreSQL with an exclusion constraint and row-level security | SQLite with an overlap **trigger**; every query goes through `store.scope(businessId)`, the only data path | The database does refuse overlaps. But tenant isolation here is by code, not by the database, which is weaker than row-level security, and the ADR-AB-0005 tests prove the code, not the database |
 | Kafka or EventBridge between services | One process; an in-process event log | The events and their order are real; only the transport differs |
 | Google Calendar and Microsoft 365 | A stand-in provider with change notifications, subscriptions that expire, outages and revocation | The connector's logic is the same shape; no consent flow or real API behaviour has been tried |
 | An email and SMS provider | A stand-in whose "sent" messages are listed in the panel | Nothing is delivered. Delivery-status callbacks are not modelled |
@@ -87,8 +88,8 @@ Beyond the criteria, the tests check the rest of each contract: every error code
 
 Building the API found places where the records are silent or wrong. None has been changed in the records.
 
-1. **ADR-AB-0003** says a hold lasts five minutes. WCAG 2.2.1 requires a way to extend a time limit, so the API has `POST /v1/holds/{id}/extend` (up to ten times). The decision should say so.
-2. **ICR-AB-0001** has no way to release a hold, so a customer who goes back to change a time blocks their own first choice for five minutes. The API has `DELETE /v1/holds/{id}`. Both additions are marked as proposed.
+1. **ICR-AB-0001** has no way to **extend** a hold. The booking requirements say a hold lasts five minutes and can be extended at least ten times (WCAG 2.2.1 requires a way to extend a time limit), so the API has `POST /v1/holds/{id}/extend`, marked as proposed.
+2. **ICR-AB-0001** has no way to **release** a hold either, so a customer who goes back to change a time blocks their own first choice for five minutes. The API has `DELETE /v1/holds/{id}`. Both additions are marked as proposed.
 3. **ICR-AB-0001** does not say what a *second* confirmation of the same hold with a *different* idempotency key returns. The demo says `409` with alternatives. Reusing a key with a different request is `422`.
 4. **ICR-AB-0001** does not say what happens when the live calendar check cannot be made because the provider is down. The demo **confirms anyway**, skips the check, logs it, and reconciles the calendar afterwards, because the design principle is that a provider outage "never stops a booking". The cost is a possible double booking against a calendar event the sync hadn't seen. That is a business risk to accept deliberately, and the contract should say so.
 5. **ICR-AB-0002 is "proposed" because its subscription-renewal schedule is not designed.** The connector implements one: renew when less than a day of a (three-day) subscription remains; on a lapse, raise an alert, subscribe again and re-synchronise. The test shows the missed-renewal path works. The contract could adopt it.

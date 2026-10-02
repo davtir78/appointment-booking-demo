@@ -1,4 +1,4 @@
-// Time zones for the booking logic (ADR-AB-0006): every booking is a UTC instant, and working hours
+// Time zones for the booking logic (the availability requirements): every booking is a UTC instant, and working hours
 // are rules in the business's zone. Everything here goes through the platform's time zone database
 // (Intl), never a hand-written offset table, so daylight saving is handled by the database: a
 // skipped hour has no local time, and a repeated hour is read as its first occurrence.

@@ -1,4 +1,4 @@
-// The Notification Worker (SAD component "Notification worker", ICR-AB-0003, ADR-AB-0005).
+// The Notification Worker (SAD component "Notification worker", ICR-AB-0003, ADR-AB-0006).
 //
 //   - Booking changes write their messages to the outbox in the same transaction as the change, so
 //     a message exists if and only if the booking change does, and the provider's availability can
@@ -57,7 +57,7 @@ export function createNotificationWorker({ store, provider, clock, log }) {
       for (const [channel, recipient] of channels) {
         if (repo.outboxAdd({ id: `${eventId}:${channel}`, bookingId, eventId, eventType: type, channel, recipient, payload: envelope, dueAt, windowEnd })) added += 1;
       }
-      log.write('notifications', added ? 'queued' : 'replay_ignored', { businessId, bookingId, eventType: type, messages: added }, { ref: 'ADR-AB-0005' });
+      log.write('notifications', added ? 'queued' : 'replay_ignored', { businessId, bookingId, eventType: type, messages: added }, { ref: 'ADR-AB-0006' });
       return added;
     },
 

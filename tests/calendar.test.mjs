@@ -1,5 +1,5 @@
 // ICR-AB-0002 Calendar synchronisation: its five acceptance criteria, then the behaviour around them
-// (the live check of ADR-AB-0002, outages, subscription renewal and its open issue).
+// (the live check of ADR-AB-0003, outages, subscription renewal and its open issue).
 // Titles beginning "[ICR-AB-0002 #n]" are the criteria.
 
 import test, { after } from 'node:test';
@@ -99,7 +99,7 @@ test('[ICR-AB-0002 #5] no stored busy interval holds an event title, attendee or
   assert.ok(!s.ctx().log.lines().join('\n').includes('Hollowell'), 'nor logged');
 });
 
-// ── the live check (ADR-AB-0002) ────────────────────────────────────────────────────────────────────
+// ── the live check (ADR-AB-0003) ────────────────────────────────────────────────────────────────────
 
 test('an event the sync has not heard about is caught when the booking is confirmed, and other times are offered', async () => {
   const s = await start();

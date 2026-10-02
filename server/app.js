@@ -241,13 +241,13 @@ export function createApp({ clock = createClock(), origins = [], staticRoot = pr
         const h = hint();
         if (!h) throw new HttpError(409, 'nothing_to_stage', 'There is no free 10:00 follow-up with Alex to take.');
         calendar.staffAdds(h.staffId, { start: h.start, end: h.end, notify: false });
-        log.write('provider', 'event_added_without_notification', { staffId: h.staffId }, { level: 'warn', ref: 'ADR-AB-0002' });
+        log.write('provider', 'event_added_without_notification', { staffId: h.staffId }, { level: 'warn', ref: 'ADR-AB-0003' });
         return { status: 200, body: { staffId: h.staffId, start: h.start } };
       }
       case 'POST /_demo/clock': {
         const b = await jsonBody(req);
         clock.advance(Math.max(0, Math.min(Number(b.advanceMs) || 0, 7 * 24 * 3600 * 1000)));
-        log.write('server', 'clock_advanced', { ms: Number(b.advanceMs) || 0 }, { ref: 'ADR-AB-0003' });
+        log.write('server', 'clock_advanced', { ms: Number(b.advanceMs) || 0 }, { ref: 'REQ-BOOKING' });
         app.tick();
         return { status: 200, body: { serverTime: clock.now() } };
       }

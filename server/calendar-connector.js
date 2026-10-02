@@ -1,4 +1,4 @@
-// The Calendar Connector (SAD component "Calendar connectors", ICR-AB-0002, ADR-AB-0002).
+// The Calendar Connector (SAD component "Calendar connectors", ICR-AB-0002, ADR-AB-0004, ADR-AB-0003).
 //
 //   - keeps a synchronised copy of each staff member's busy times, driven by change notifications.
 //     A notification only says "something changed": the connector asks for the current state, so a
@@ -104,7 +104,7 @@ export function createCalendarConnector({ store, provider, clock, log }) {
     },
 
     /**
-     * The live check of ADR-AB-0002, for the one slot being confirmed.
+     * The live check of ADR-AB-0003, for the one slot being confirmed.
      * `checked: false` means it could not be done (provider down, or no calendar connected); the
      * booking then proceeds and the calendar is reconciled afterwards, because a provider outage
      * degrades the experience and never stops a booking.
@@ -115,11 +115,11 @@ export function createCalendarConnector({ store, provider, clock, log }) {
       try {
         const events = provider.listEvents(token(connection), staffId, start, end).filter((e) => !e.bookingId);
         const conflict = events.some((e) => e.start < end && e.end > start);
-        log.write('calendar', 'live_check', { businessId, staffId, conflict }, { ref: 'ADR-AB-0002' });
+        log.write('calendar', 'live_check', { businessId, staffId, conflict }, { ref: 'ADR-AB-0003' });
         return { checked: true, conflict };
       } catch (e) {
         handleProviderError(businessId, staffId, connection, e, 'live_check');
-        log.write('calendar', 'live_check_skipped', { businessId, staffId }, { level: 'warn', ref: 'ADR-AB-0002' });
+        log.write('calendar', 'live_check_skipped', { businessId, staffId }, { level: 'warn', ref: 'ADR-AB-0003' });
         return { checked: false, conflict: false, reason: 'provider_unavailable' };
       }
     },

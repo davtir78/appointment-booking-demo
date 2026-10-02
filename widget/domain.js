@@ -2,12 +2,12 @@
 // it implements. Everything runs in memory: this is a stand-in for the Booking API of ICR-AB-0001,
 // and it talks to nothing.
 //
-//   ADR-AB-0002  availability comes from a synchronised copy of staff calendars, and a live check
+//   ADR-AB-0003  availability comes from a synchronised copy of staff calendars, and a live check
 //                runs when a hold is confirmed, so a change the copy hasn't seen is still caught
-//   ADR-AB-0003  choosing a slot creates a five-minute hold; holds and bookings are rows in one
-//                table, and a row that overlaps an active one for the same staff member is rejected
-//   ADR-AB-0005  every booking change queues messages; the demo shows them and sends none
-//   ADR-AB-0006  rules are in the business's zone, bookings are UTC instants
+//   Booking requirements: choosing a slot creates a five-minute hold; holds and bookings are rows in
+//                one table, and a row that overlaps an active one for the same staff member is rejected
+//   ADR-AB-0006  every booking change queues messages; the demo shows them and sends none
+//   Availability requirements: rules are in the business's zone, bookings are UTC instants
 
 import { BUSINESS, SERVICES, STAFF } from './data.js';
 import { addDays, dateInZone, weekday, zonedTimeToUtc } from './time.js';
@@ -86,9 +86,9 @@ export class Backend {
     this.business = business;
     this.services = services;
     this.staff = staff;
-    /** Holds and bookings share one table (ADR-AB-0003); `kind` tells them apart. */
+    /** Holds and bookings share one table (the booking requirements); `kind` tells them apart. */
     this.rows = [];
-    /** Messages queued by booking changes (ADR-AB-0005). Nothing ever sends them. */
+    /** Messages queued by booking changes (ADR-AB-0006). Nothing ever sends them. */
     this.outbox = [];
     this.seq = 0;
     this.idempotent = new Map();
@@ -129,7 +129,7 @@ export class Backend {
     return this.rows.filter((r) => r.staffId === staffId && r.id !== ignoreId && (r.kind === 'booking' || r.expiresAt > now));
   }
 
-  /** The overlap constraint of ADR-AB-0003: true when the interval collides with an active row. */
+  /** The overlap constraint of the booking requirements: true when the interval collides with an active row. */
   #collides(staffId, interval, ignoreId) {
     return this.#activeRows(staffId, ignoreId).some((r) => overlaps(r, interval));
   }
@@ -222,7 +222,7 @@ export class Backend {
     this.rows = this.rows.filter((r) => !(r.id === holdId && r.kind === 'hold'));
   }
 
-  /** The live calendar check of ADR-AB-0002, run for the one slot at the moment it matters. */
+  /** The live calendar check of ADR-AB-0003, run for the one slot at the moment it matters. */
   #liveCheck(row) {
     const clash = this.liveOnly.some((e) => e.staffId === row.staffId && overlaps(e, row));
     if (!clash) return;
