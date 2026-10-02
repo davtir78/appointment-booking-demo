@@ -1,5 +1,5 @@
 // The Availability Service and Booking Service of the SAD, in one module (ICR-AB-0001, ADR-AB-0003,
-// ADR-AB-0006 and the booking, availability and notification requirements). Every method takes the business the gateway resolved from
+// and the booking, availability and notification requirements). Every method takes the business the gateway resolved from
 // the widget key and reaches data only through `store.scope(businessId)`.
 //
 // Times are UTC instants (milliseconds here; the gateway renders them as ISO 8601). Working hours
@@ -229,7 +229,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
           repo.confirmHold(holdId, { bookingId, token, customer });
           const booked = repo.row(holdId);
           const data = messageData(businessId, business, booked, token);
-          // The messages are written in the same transaction as the booking (ADR-AB-0006).
+          // The messages are written in the same transaction as the booking (the notification requirements' design note).
           worker.enqueue(businessId, { type: 'BookingConfirmed', bookingId, eventId: `evt_${bookingId}_confirmed`, booking: data, customer });
           reminderFor(businessId, booked, customer, data);
           repo.calendarWriteAdd({ staffId: booked.staffId, bookingId, op: 'upsert', start: booked.start, end: booked.end, firstName: name.split(/\s+/)[0], serviceName: data.serviceName });

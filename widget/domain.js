@@ -6,7 +6,7 @@
 //                runs when a hold is confirmed, so a change the copy hasn't seen is still caught
 //   Booking requirements: choosing a slot creates a five-minute hold; holds and bookings are rows in
 //                one table, and a row that overlaps an active one for the same staff member is rejected
-//   ADR-AB-0006  every booking change queues messages; the demo shows them and sends none
+//   Notification requirements: every booking change queues messages; the demo shows them and sends none
 //   Availability requirements: rules are in the business's zone, bookings are UTC instants
 
 import { BUSINESS, SERVICES, STAFF } from './data.js';
@@ -88,7 +88,7 @@ export class Backend {
     this.staff = staff;
     /** Holds and bookings share one table (the booking requirements); `kind` tells them apart. */
     this.rows = [];
-    /** Messages queued by booking changes (ADR-AB-0006). Nothing ever sends them. */
+    /** Messages queued by booking changes (the notification requirements). Nothing ever sends them. */
     this.outbox = [];
     this.seq = 0;
     this.idempotent = new Map();

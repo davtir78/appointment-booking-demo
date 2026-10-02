@@ -1,5 +1,5 @@
 // ICR-AB-0003 Notification delivery: its five acceptance criteria, then the behaviour around them
-// (the transactional outbox of ADR-AB-0006, dead letters, channels, CloudEvents).
+// (the transactional outbox described in the notification requirements, dead letters, channels, CloudEvents).
 // Titles beginning "[ICR-AB-0003 #n]" are the criteria.
 
 import test, { after } from 'node:test';
@@ -132,7 +132,7 @@ test('[ICR-AB-0003 #5] no log line contains a message body, an email address or 
 
 // ── the outbox, channels and failure paths ──────────────────────────────────────────────────────────
 
-test('messages are written in the same transaction as the booking: if one fails, neither exists (ADR-AB-0006)', async () => {
+test('messages are written in the same transaction as the booking: if one fails, neither exists (notification requirements)', async () => {
   const s = await start();
   const slot = await s.pick('followup', { staff: 'sam' });
   const hold = (await s.api.hold(slot)).json;

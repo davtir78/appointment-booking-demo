@@ -21,7 +21,7 @@ const RECORDS = {
   'ADR-AB-0003': ['decisions/0003-availability-source-of-truth.md', 'Availability from a synchronised copy'],
   'ADR-AB-0004': ['decisions/0004-calendar-integration.md', 'Each provider’s own API and notifications'],
   'ADR-AB-0005': ['decisions/0005-multi-tenancy.md', 'Shared database, tenant isolation'],
-  'ADR-AB-0006': ['decisions/0006-notification-delivery.md', 'Notifications through an outbox'],
+  'ADR-AB-0006': ['decisions/0006-hosting-and-recovery.md', 'Containers in one region, recoverable into a second'],
   'ADR-AB-0007': ['decisions/0007-data-store.md', 'A managed PostgreSQL database'],
   'REQ-BOOKING': ['requirements/booking.md', 'Booking requirements'],
   'REQ-AVAILABILITY': ['requirements/availability.md', 'Availability requirements'],
@@ -36,7 +36,7 @@ const COMPONENTS = {
   gateway: { name: 'API gateway', adr: 'ADR-AB-0002', pattern: ['Integration API Management (External)', 'int-api-external'] },
   booking: { name: 'Booking service', adr: 'ADR-AB-0007', pattern: null },
   calendar: { name: 'Calendar connectors', adr: 'ADR-AB-0004', pattern: ['Integration Native Connectors (Cloud)', 'int-native-cloud'] },
-  notifications: { name: 'Notification worker', adr: 'ADR-AB-0006', pattern: ['Integration Middleware Services (Cloud)', 'int-middleware-cloud'] },
+  notifications: { name: 'Notification worker', adr: null, pattern: ['Integration Middleware Services (Cloud)', 'int-middleware-cloud'] },
   provider: { name: 'Stand-in provider', pattern: null },
   server: { name: 'Server', pattern: null },
 };

@@ -172,7 +172,7 @@ test('releasing a hold frees the time at once, so a customer can re-choose it', 
   assert.doesNotThrow(() => backend.createHold({ serviceId: 'followup', staffId: 'sam', start: slot.start }));
 });
 
-// ── confirming (ADR-AB-0003, ADR-AB-0006) ───────────────────────────────────────────────────────────
+// ── confirming (ADR-AB-0003, notification requirements) ───────────────────────────────────────────────────────────
 
 const CUSTOMER = { name: 'Sample Customer', email: 'sample.customer@example.com', phone: '0400 000 000' };
 

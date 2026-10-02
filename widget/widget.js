@@ -454,8 +454,8 @@ function outboxList(messages) {
   return h('details', { class: 'outbox' },
     h('summary', { text: 'What happens next' }),
     h('p', { text: real
-      ? 'These were written to the outbox in the same transaction as the booking. The notification worker sends them through a stand-in provider, so a provider outage can’t stop a booking (ADR-AB-0006). Nothing leaves this computer: the panel below shows them being sent.'
-      : 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (ADR-AB-0006). This demo only lists them: nothing is sent.' }),
+      ? 'These were written to the outbox in the same transaction as the booking. The notification worker sends them through a stand-in provider, so a provider outage can’t stop a booking (the notification requirements). Nothing leaves this computer: the panel below shows them being sent.'
+      : 'A real system would now send these messages from a queue, so a provider outage can’t stop a booking (the notification requirements). This demo only lists them: nothing is sent.' }),
     h('ul', {}, messages.map((m) => h('li', { text: `${(OUTBOX_TEXT[m.type]?.(m) ?? m.type)}${m.channel ? ` by ${m.channel}` : ''}, ${m.status === 'sent' ? 'sent' : 'queued'}.` }))));
 }
 

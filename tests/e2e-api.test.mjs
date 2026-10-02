@@ -90,7 +90,7 @@ test('a booking made through the widget goes through the real API, and the panel
   assert.match(events, /Notification worker queued/);
   assert.match(events, /Notification worker sent/);
   assert.ok(await frame.locator('.panel .events a[href*="ICR-AB-0001"]').count() > 0, 'linked to the contract');
-  assert.ok(await frame.locator('.panel .events a[href*="decisions/0006"], .panel .events a[href*="ICR-AB-0003"]').count() > 0, 'and to a decision or contract clause');
+  assert.ok(await frame.locator('.panel .events a[href*="requirements/notifications"], .panel .events a[href*="ICR-AB-0003"]').count() > 0, 'and to a decision or contract clause');
   assert.ok(await frame.locator('.panel .events a[href*="/patterns/int-"]').count() > 0, 'and to the library pattern');
   assert.ok(await frame.locator('.panel .events a[href*="sad.md"]').count() > 0, 'and to the SAD');
   assert.deepEqual(problems, []);

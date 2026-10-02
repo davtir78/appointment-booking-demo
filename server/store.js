@@ -8,7 +8,7 @@
 //                Here every query goes through `store.scope(businessId)`, the only data path, and each
 //                method puts the business in its WHERE clause. That is isolation by code, not by the
 //                database, and is stated as a difference from the design.
-//   ADR-AB-0006  the transactional outbox is a table written in the same transaction as the booking.
+//   Notification requirements: the transactional outbox is a table written in the same transaction as the booking.
 //   ICR-AB-0002  busy intervals hold no titles, attendees or descriptions: the table has no column
 //                that could.
 
@@ -88,7 +88,7 @@ CREATE TABLE calendar_writes (
   status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0, next_attempt_ms INTEGER NOT NULL DEFAULT 0
 );
 
--- The transactional outbox (ADR-AB-0006): one row per message, keyed by event id and channel.
+-- The transactional outbox (the notification requirements): one row per message, keyed by event id and channel.
 CREATE TABLE outbox (
   id TEXT PRIMARY KEY,
   business_id TEXT NOT NULL, booking_id TEXT NOT NULL,
