@@ -140,4 +140,4 @@ npm install && npm run test:e2e    # a real browser: the public mode, and the re
 
 ## Licence
 
-Not yet chosen. Until the owner adds one, all rights are reserved.
+The code is released under the [MIT licence](LICENSE). The records it demonstrates, in [architecture-records](https://github.com/davtir78/architecture-records), are licensed separately under CC BY 4.0.
