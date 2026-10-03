@@ -48,3 +48,14 @@ test('when the sample project is alongside, every record the panel links to exis
     assert.ok(headings.includes(anchor), `${file.slice(ROOT.length + 1)} cites ${id}#${anchor}, which is not a heading there`);
   }
 });
+
+test('no file links to the private source repository, and every link into the public records exists there', (t) => {
+  const files = ['README.md', 'index.html', join('widget', 'panel.js')];
+  for (const f of files) assert.ok(!/github\.com\/davtir78\/itarchitecturepatterns(?![-\w])/.test(read(join(ROOT, f))), `${f} links to the private repository, which a visitor cannot open`);
+  if (!existsSync(SAMPLE)) return t.skip('the sample project is not beside this repository');
+  for (const f of files) {
+    for (const m of read(join(ROOT, f)).matchAll(/architecture-records\/(?:blob|tree)\/main\/samples\/appointment-booking\/([\w./-]*)/g)) {
+      assert.ok(m[1] === '' || existsSync(join(SAMPLE, m[1])), `${f} links to ${m[1]}, which is not in the sample project`);
+    }
+  }
+});

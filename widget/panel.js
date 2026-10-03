@@ -12,7 +12,7 @@
 
 import { formatDay, formatSlot } from './time.js';
 
-const DOCS = 'https://github.com/davtir78/itarchitecturepatterns/blob/main/docs/samples/appointment-booking/';
+const DOCS = 'https://github.com/davtir78/architecture-records/blob/main/samples/appointment-booking/';
 const SITE = 'https://www.itarchitecturepatterns.net';
 
 const RECORDS = {
