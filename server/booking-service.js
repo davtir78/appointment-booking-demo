@@ -117,7 +117,7 @@ export function createBookingService({ store, connector, worker, clock, log }) {
   function messageData(businessId, business, row, token) {
     const repo = store.scope(businessId);
     return {
-      serviceName: repo.service(row.serviceId).name, staffName: repo.staffMember(row.staffId).name, start: row.start, end: row.end,
+      serviceName: repo.service(row.serviceId).name, staffName: repo.staffMember(row.staffId).name, start: new Date(row.start).toISOString(), end: new Date(row.end).toISOString(),
       timeZone: business.timeZone, manageUrl: `https://example.com/manage/${row.bookingId}?t=${token}`,
     };
   }

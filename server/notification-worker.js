@@ -29,7 +29,7 @@ function cloudEvent({ id, type, bookingId, time, data }) {
 }
 
 function render(eventType, d) {
-  const when = formatSlot(d.start, d.timeZone);
+  const when = formatSlot(Date.parse(d.start), d.timeZone); // event times are ISO 8601 instants, like every time on the wire
   const hello = `Hi ${d.firstName},`;
   switch (eventType) {
     case 'BookingConfirmed': return { subject: `Booked: ${d.serviceName}, ${when}`, body: `${hello} you're booked for ${d.serviceName} with ${d.staffName} on ${when}. Manage your booking: ${d.manageUrl}` };

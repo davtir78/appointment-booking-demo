@@ -92,7 +92,7 @@ Beyond the criteria, the tests check the rest of each contract: every error code
 
 ## Findings for the records
 
-Building the API found places where the records were silent or wrong. All seven are now in the sample's records (ICR-AB-0001 v1.1.0, ICR-AB-0002 v0.10.0, ICR-AB-0003 v1.0.1, ADR-AB-0003, the availability requirements and the SAD), each with an acceptance criterion that a test here proves. Where the records call something *proposed*, it is because the contract's owners have not yet agreed it.
+Building the API found places where the records were silent or wrong. All seven are now in the sample's records (ICR-AB-0001 v1.2.0, ICR-AB-0002 v0.11.0, ICR-AB-0003 v1.1.0, ADR-AB-0003, the availability requirements and the SAD), each with an acceptance criterion that a test here proves. Where the records call something *proposed*, it is because the contract's owners have not yet agreed it.
 
 1. **ICR-AB-0001** has no way to **extend** a hold. The booking requirements say a hold lasts five minutes and can be extended at least ten times (WCAG 2.2.1 requires a way to extend a time limit), so the API has `POST /v1/holds/{id}/extend`, marked as proposed.
 2. **ICR-AB-0001** has no way to **release** a hold either, so a customer who goes back to change a time blocks their own first choice for five minutes. The API has `DELETE /v1/holds/{id}`. Both additions are marked as proposed.

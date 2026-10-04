@@ -151,11 +151,10 @@ test('[ICR-AB-0002 #7] with the provider unavailable the live check is recorded 
   const refused = await s.api.confirm((await s.api.hold(conflict)).json.id);
   assert.equal(refused.status, 409, 'reachable provider: the conflict is refused');
   s.ctx().calendar.setDown(true);
-  const { slot } = await s.book({ staff: 'sam', index: 2 });
+  await s.book({ staff: 'sam', index: 2 });
   const skipped = s.ctx().log.all().find((e) => e.event === 'live_check_skipped');
   assert.ok(skipped, 'unreachable provider: the skip is recorded');
-  assert.equal(skipped.data?.reason ?? skipped.reason ?? 'provider_unavailable', 'provider_unavailable');
-  assert.ok(slot);
+  assert.equal(skipped.level, 'warn', 'and it is logged as a warning');
 });
 
 test('cancelling removes the booking’s event from the staff calendar', async () => {

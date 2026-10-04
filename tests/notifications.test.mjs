@@ -208,3 +208,17 @@ test('rescheduling supersedes the unsent confirmation and says the booking has m
   assert.ok(subjects(s).every((x) => x.startsWith('Moved')), subjects(s).join(' | '));
   assert.equal(inbox(s).length, 2);
 });
+
+test('an event carries its times as ISO 8601 instants, like every time on the wire, and its envelope names the booking', async () => {
+  const s = await start();
+  const { booking } = await s.book({ staff: 'sam', index: 2 });
+  const rows = s.ctx().store.db.prepare('SELECT payload FROM outbox WHERE booking_id = ?').all(booking.id).map((r) => JSON.parse(r.payload));
+  assert.ok(rows.length >= 1);
+  for (const event of rows) {
+    assert.equal(event.specversion, '1.0');
+    assert.equal(event.subject, booking.id);
+    assert.equal(event.data.start, booking.start, 'the same instant as the booking, in the same form');
+    assert.equal(event.data.end, booking.end);
+    assert.match(event.data.start, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  }
+});
