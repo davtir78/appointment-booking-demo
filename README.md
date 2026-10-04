@@ -28,8 +28,8 @@ Open the **Behind the scenes** panel under the widget. For every request the wid
 | **Solution architecture design** | [sad.md §4.2](https://github.com/davtir78/architecture-records/blob/main/samples/appointment-booking/sad.md#42-component-catalog) | Each component in the catalog is a module here (table below), and the panel labels every event with its component |
 | **Requirements** | [booking, availability, notifications](https://github.com/davtir78/architecture-records/tree/main/samples/appointment-booking/requirements) | What must be true, as scenarios you can provoke: the lost race and the five-minute hold (booking), times in another zone (availability), the messaging outage and the cancelled-before-sent confirmation (notifications) |
 | **Decision record (MADR)** | [the seven ADRs](https://github.com/davtir78/architecture-records/tree/main/samples/appointment-booking/decisions) | How the design makes the requirements true: the framed widget (ADR-1), the key, registered domains and rate limit of the API (ADR-2), the calendar change the sync missed (ADR-3), building the calendar connectors rather than buying them (ADR-4), tenancy (ADR-5), hosting and recovery (ADR-6), the database (ADR-7). The outbox is a design note in the notification requirements |
-| **Pattern** | [Integration API Management (External)](https://www.itarchitecturepatterns.net/patterns/int-api-external), [Native Connectors (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-native-cloud), [Middleware Services (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-middleware-cloud) | The gateway, the calendar connector and the notification worker are built on these three; the panel links each event to its pattern. (The architecture pattern *records* wait for the format in #12) |
-| **Interface contract (ICR)** | [the three ICRs](https://github.com/davtir78/architecture-records/tree/main/samples/appointment-booking/contracts) | Their twenty acceptance criteria are automated tests; see the conformance table |
+| **Pattern** | [Integration API Management (External)](https://www.itarchitecturepatterns.net/patterns/int-api-external), [Native Connectors (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-native-cloud), [Middleware Services (Cloud)](https://www.itarchitecturepatterns.net/patterns/int-middleware-cloud) | The gateway, the calendar connector and the notification worker are built on these three; the panel links each event to its pattern. (Architecture pattern *records* are planned, but their format is not yet settled.) |
+| **Interface contract (ICR)** | [the three ICRs](https://github.com/davtir78/architecture-records/tree/main/samples/appointment-booking/contracts) | Twenty of their twenty-three acceptance criteria are automated tests; see the conformance table |
 
 ### The SAD's components, and what stands in for them
 
@@ -73,6 +73,8 @@ Each numbered acceptance criterion of the three contracts is an automated test. 
 | ICR-AB-0003 #3 | A reminder whose window passed during an outage is not sent late | `notifications.test.mjs` |
 | ICR-AB-0003 #4 | Replaying the same booking event sends nothing new | `notifications.test.mjs` |
 | ICR-AB-0003 #5 | No log line contains a message body, email address or phone number | `notifications.test.mjs` |
+
+Three criteria are **not automated**: ICR-AB-0001 #9, ICR-AB-0002 #8 and ICR-AB-0003 #6 each say the contract's examples are valid against its specification file, and this demo ships no OpenAPI or AsyncAPI file to check them against.
 
 Beyond the criteria, the tests check the rest of each contract: every error code and its meaning as a problem document, the rate limit with `Retry-After`, `traceparent`, tenant isolation, token expiry, CORS, and, for the booking requirements (and ADR-AB-0007), that **the database itself** refuses an overlapping booking when a row is inserted directly, bypassing the application.
 
