@@ -49,7 +49,7 @@ Open the **Behind the scenes** panel under the widget. For every request the wid
 
 ## Conformance to the contracts
 
-Each numbered acceptance criterion of the three contracts is an automated test. `tests/conformance.test.mjs` fails if one loses its test or if this table stops naming it.
+Most of the numbered acceptance criteria of the three contracts are automated tests: twenty of the twenty-three, listed below (the other three are named under the table). `tests/conformance.test.mjs` fails if one of the twenty loses its test or if this table stops naming it. ICR-AB-0001 #1 runs on an empty server, not under load (see the differences below).
 
 | Criterion | What it requires | Test file |
 | :--- | :--- | :--- |
@@ -92,14 +92,14 @@ Beyond the criteria, the tests check the rest of each contract: every error code
 
 ## Findings for the records
 
-Building the API found places where the records were silent or wrong. All seven are now in the sample's records (ICR-AB-0001 v1.2.0, ICR-AB-0002 v0.11.0, ICR-AB-0003 v1.1.0, ADR-AB-0003, the availability requirements and the SAD), each with an acceptance criterion that a test here proves. Where the records call something *proposed*, it is because the contract's owners have not yet agreed it.
+Building the API found places where the records were silent or wrong. All seven were fed back into the sample's records (ICR-AB-0001 v1.2.0, ICR-AB-0002 v0.11.0, ICR-AB-0003 v1.1.0, ADR-AB-0003, the availability requirements and the SAD). Five of the seven (1, 2, 4, 5 and 7) are checked by an acceptance criterion with an automated test here; finding 3 is only partly covered, and finding 6 is in ICR-AB-0003's error-handling text but in none of its acceptance criteria. Where the records call something *proposed*, it is because the contract's owners have not yet agreed it.
 
 1. **ICR-AB-0001** has no way to **extend** a hold. The booking requirements say a hold lasts five minutes and can be extended at least ten times (WCAG 2.2.1 requires a way to extend a time limit), so the API has `POST /v1/holds/{id}/extend`, marked as proposed.
 2. **ICR-AB-0001** has no way to **release** a hold either, so a customer who goes back to change a time blocks their own first choice for five minutes. The API has `DELETE /v1/holds/{id}`. Both additions are marked as proposed.
-3. **ICR-AB-0001** does not say what a *second* confirmation of the same hold with a *different* idempotency key returns. The demo says `409` with alternatives. Reusing a key with a different request is `422`.
+3. **ICR-AB-0001** does not say what a *second* confirmation of the same hold with a *different* idempotency key returns. The demo says `409` with alternatives. Reusing a key with a different request is `422`. The records now say both. A test here checks the `422` (inside the idempotency test), but none checks the `409`, and neither is an acceptance criterion.
 4. **ICR-AB-0001** does not say what happens when the live calendar check cannot be made because the provider is down. The demo **confirms anyway**, skips the check, logs it, and reconciles the calendar afterwards, because the design principle is that a provider outage "never stops a booking". The cost is a possible double booking against a calendar event the sync hadn't seen. That is a business risk to accept deliberately, and the contract should say so.
 5. **ICR-AB-0002 is "proposed" because its subscription-renewal schedule is not designed.** The connector implements one: renew when less than a day of a (three-day) subscription remains; on a lapse, raise an alert, subscribe again and re-synchronise. The test shows the missed-renewal path works. The contract could adopt it.
-6. **ICR-AB-0003** says to retry for 24 hours then dead-letter. A reminder queued days ahead had its 24 hours counted from creation, so it could be dead-lettered before it was due. The worker now counts from when a message becomes due. The contract should say "from when it is due".
+6. **ICR-AB-0003** says to retry for 24 hours then dead-letter. A reminder queued days ahead had its 24 hours counted from creation, so it could be dead-lettered before it was due. The worker now counts from when a message becomes due. ICR-AB-0003's error-handling text now says "from when the message became due", but none of its acceptance criteria checks it.
 7. **ICR-AB-0002** says a full re-synchronisation runs "when calls start succeeding again". With a retry back-off capped at an hour, writes could wait an hour after the provider returned. The connector now probes a failing provider every minute and, when it answers, re-synchronises and retries pending writes at once.
 
 ## Safety
